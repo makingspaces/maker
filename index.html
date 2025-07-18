@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MakerSpace Portfolio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Making with Tink ✨</title>
     <style>
         * {
             margin: 0;
@@ -13,40 +12,22 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            color: #334155;
-            overflow-x: hidden;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
             line-height: 1.6;
+            overflow-x: hidden;
         }
 
-        /* Subtle animated background */
-        body::before {
-            content: '';
+        .navbar {
             position: fixed;
             top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(167, 243, 208, 0.05) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        /* Navigation */
-        .nav {
+            width: 100%;
             background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            padding: 15px 0;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
             z-index: 1000;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
         }
 
         .nav-container {
@@ -55,766 +36,608 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px;
+            padding: 0 2rem;
         }
 
         .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #3b82f6;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 16px;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            text-decoration: none;
         }
 
         .nav-links {
             display: flex;
-            gap: 40px;
             list-style: none;
+            gap: 2rem;
         }
 
         .nav-links a {
-            color: #64748b;
             text-decoration: none;
+            color: #333;
             font-weight: 500;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 8px;
+            transition: color 0.3s ease;
         }
 
-        .nav-links a:hover, .nav-links a.active {
-            color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+        .nav-links a:hover {
+            color: #667eea;
         }
 
-        /* Mobile nav toggle */
-        .nav-toggle {
+        .mobile-menu {
             display: none;
-            flex-direction: column;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
             cursor: pointer;
-            padding: 5px;
         }
 
-        .nav-toggle span {
-            width: 25px;
-            height: 3px;
-            background: #3b82f6;
-            margin: 3px 0;
-            border-radius: 2px;
-            transition: 0.3s;
-        }
-
-        /* Main container */
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 100px 20px 40px;
+            padding: 0 2rem;
         }
 
-        /* Section styles */
         .section {
-            display: none;
-            min-height: calc(100vh - 140px);
-            padding: 20px 0;
+            min-height: 100vh;
+            padding: 6rem 0;
+            display: flex;
+            align-items: center;
         }
 
-        .section.active {
-            display: block;
-        }
-
-        .section-title {
-            font-size: 2.5em;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-
-        .section-subtitle {
-            font-size: 1.2em;
-            color: #64748b;
-            text-align: center;
-            margin-bottom: 40px;
-            font-weight: 400;
-        }
-
-        /* Home section */
         .hero {
             text-align: center;
-            padding: 80px 40px;
-            background: white;
-            border-radius: 24px;
-            margin-bottom: 60px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
+            color: white;
         }
 
         .hero h1 {
-            font-size: 3.5em;
-            font-weight: 800;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
         }
 
         .hero p {
-            font-size: 1.3em;
-            margin-bottom: 40px;
-            color: #64748b;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .fairy-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: sparkle 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.1); }
         }
 
         .cta-button {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
             color: white;
-            padding: 16px 32px;
             text-decoration: none;
-            border-radius: 12px;
+            border-radius: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             font-weight: 600;
-            font-size: 1.1em;
             transition: all 0.3s ease;
-            cursor: pointer;
-            border: none;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
         }
 
         .cta-button:hover {
+            background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        /* Feature cards */
-        .features-grid {
+        .content-section {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            margin: 2rem 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 32px;
-            margin-top: 60px;
-        }
-
-        .feature-card {
-            background: white;
-            padding: 32px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0, 0, 0, 0.06);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
-        }
-
-        .feature-icon {
-            width: 64px;
-            height: 64px;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-        }
-
-        .feature-card h3 {
-            font-size: 1.4em;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 12px;
-        }
-
-        .feature-card p {
-            color: #64748b;
-            line-height: 1.6;
-        }
-
-        /* Projects Gallery */
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 32px;
-            margin-top: 40px;
+            gap: 2rem;
+            margin: 2rem 0;
         }
 
         .project-card {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.06);
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .project-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
         }
 
-        .project-image {
-            width: 100%;
-            height: 200px;
-            background: linear-gradient(135deg, #3b82f6, #10b981);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3em;
-            color: white;
+        .project-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
         }
 
-        .project-content {
-            padding: 24px;
+        .project-card h3 {
+            color: #333;
+            margin-bottom: 1rem;
         }
 
-        .project-title {
-            font-size: 1.4em;
-            color: #1e293b;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .project-description {
-            color: #64748b;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        .project-tech {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .tech-tag {
-            background: rgba(59, 130, 246, 0.1);
-            color: #3b82f6;
-            padding: 6px 12px;
+        .chat-container {
+            background: white;
             border-radius: 20px;
-            font-size: 0.85em;
-            font-weight: 500;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
         }
 
-        /* Contact Section */
-        .contact-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 40px;
+        .chat-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 15px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: #667eea;
+            color: white;
+            margin-left: auto;
+        }
+
+        .tink-message {
+            background: #e9ecef;
+            color: #333;
+            margin-right: auto;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 1rem 2rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+
+        .send-button:hover {
+            background: #5a6fd8;
         }
 
         .contact-form {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 1.5rem;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            color: #1e293b;
+            margin-bottom: 0.5rem;
+            color: #333;
             font-weight: 500;
         }
 
         .form-group input,
         .form-group textarea {
             width: 100%;
-            padding: 14px 16px;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            color: #334155;
-            font-family: inherit;
-            font-size: 16px;
-            transition: all 0.3s ease;
+            padding: 1rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
         }
 
         .form-group input:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            background: white;
+            border-color: #667eea;
         }
 
-        .form-group textarea {
-            height: 120px;
-            resize: vertical;
-        }
-
-        .contact-info {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .contact-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-        }
-
-        .contact-icon {
-            width: 48px;
-            height: 48px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .submit-button {
+            width: 100%;
+            padding: 1rem;
+            background: #667eea;
             color: white;
-            font-size: 1.2em;
-        }
-
-        .contact-item div {
-            flex: 1;
-        }
-
-        .contact-item strong {
-            color: #1e293b;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .contact-item span {
-            color: #64748b;
-        }
-
-        /* Chat with Tink Section */
-        .chat-panel {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 550px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .chat-header {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            padding: 20px;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .chat-header-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            background: #f8fafc;
-        }
-
-        .message {
-            max-width: 85%;
-            padding: 16px 20px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            font-size: 15px;
-            line-height: 1.5;
-        }
-
-        .message.user {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            margin-left: auto;
-            border-bottom-right-radius: 6px;
-        }
-
-        .message.assistant {
-            background: white;
-            color: #334155;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            border-bottom-left-radius: 6px;
-        }
-
-        .chat-input-container {
-            background: white;
-            padding: 20px;
-            display: flex;
-            gap: 12px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 14px 18px;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 16px;
-            color: #334155;
-            font-family: inherit;
-            font-size: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            background: white;
-        }
-
-        .chat-input::placeholder {
-            color: #94a3b8;
-        }
-
-        .send-btn {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             border: none;
-            border-radius: 12px;
-            width: 48px;
-            height: 48px;
-            color: white;
-            font-size: 18px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: background 0.3s ease;
+        }
+
+        .submit-button:hover {
+            background: #5a6fd8;
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .thinking-process {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .process-step {
             display: flex;
             align-items: center;
-            justify-content: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
         }
 
-        .send-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        .step-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
         }
 
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 16px 20px;
-            background: white;
-            border-radius: 18px;
-            border-bottom-left-radius: 6px;
-            max-width: 85%;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #3b82f6;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes typing {
-            0%, 60%, 100% { opacity: 0.3; }
-            30% { opacity: 1; }
-        }
-
-        /* Responsive Design */
         @media (max-width: 768px) {
             .nav-links {
                 display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: rgba(255, 255, 255, 0.98);
-                backdrop-filter: blur(20px);
-                flex-direction: column;
-                gap: 0;
-                padding: 20px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             }
-
-            .nav-links.active {
-                display: flex;
+            
+            .mobile-menu {
+                display: block;
             }
-
-            .nav-links a {
-                padding: 16px;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-            }
-
-            .nav-toggle {
-                display: flex;
-            }
-
-            .hero {
-                padding: 60px 30px;
-            }
-
+            
             .hero h1 {
-                font-size: 2.5em;
+                font-size: 2.5rem;
             }
-
-            .contact-container {
-                grid-template-columns: 1fr;
-                gap: 24px;
+            
+            .hero p {
+                font-size: 1.1rem;
             }
-
-            .projects-grid {
-                grid-template-columns: 1fr;
+            
+            .content-section {
+                padding: 2rem;
+                margin: 1rem 0;
             }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
+            
             .section-title {
-                font-size: 2em;
+                font-size: 2rem;
             }
-
-            .chat-panel {
-                height: 500px;
+            
+            .gallery-grid {
+                grid-template-columns: 1fr;
             }
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            
+            .container {
+                padding: 0 1rem;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="nav">
+    <nav class="navbar">
         <div class="nav-container">
-            <div class="logo">
-                <div class="logo-icon">🧚</div>
-                Making with Tink
-            </div>
-            <ul class="nav-links" id="navLinks">
-                <li><a href="#" onclick="showSection('home')" class="nav-link active">Home</a></li>
-                <li><a href="#" onclick="showSection('projects')" class="nav-link">Projects</a></li>
-                <li><a href="#" onclick="showSection('ai-assistant')" class="nav-link">Chat with Tink</a></li>
-                <li><a href="#" onclick="showSection('contact')" class="nav-link">Contact</a></li>
+            <a href="#home" class="logo">✨ Making with Tink</a>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#chat">Chat with Tink</a></li>
+                <li><a href="#gallery">Gallery</a></li>
+                <li><a href="#contact">Contact</a></li>
             </ul>
-            <div class="nav-toggle" id="navToggle">
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
+            <button class="mobile-menu">☰</button>
         </div>
     </nav>
 
-    <div class="container">
-        <!-- Home Section -->
-        <section id="home" class="section active">
-            <div class="hero">
-                <h1>Making with Tink</h1>
-                <p>Meet Tink, your friendly maker fairy! ✨ Whether you're building, creating, or solving everyday problems, Tink is here to guide you through the magical process of bringing ideas to life.</p>
-                <button class="cta-button" onclick="showSection('ai-assistant')">
-                    <span>🧚</span>
-                    Meet Tink
-                </button>
-            </div>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">💫</div>
-                    <h3>Creative Guidance</h3>
-                    <p>Tink helps you discover new possibilities and approaches to your making projects with gentle, thoughtful questions.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🧚</div>
-                    <h3>Friendly Support</h3>
-                    <p>Like having a wise friend by your side, Tink encourages exploration and helps you think through challenges.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">✨</div>
-                    <h3>Magic in Making</h3>
-                    <p>Every project is an adventure! Tink makes the process of creating and problem-solving feel magical and fun.</p>
-                </div>
-            </div>
-        </section>
+    <section id="home" class="section hero">
+        <div class="container">
+            <div class="fairy-icon">🧚‍♀️</div>
+            <h1>Making with Tink</h1>
+            <p>Your friendly maker fairy is here to help you bring ideas to life!</p>
+            <p>From dreams to prototypes, let's design thinking together ✨</p>
+            <a href="#chat" class="cta-button">Start Creating</a>
+        </div>
+    </section>
 
-        <!-- Projects Section -->
-        <section id="projects" class="section">
-            <h2 class="section-title">Featured Projects</h2>
-            <p class="section-subtitle">A collection of solutions that make everyday life better</p>
-            
-            <div class="projects-grid">
-                <div class="project-card">
-                    <div class="project-image">🏠</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Smart Home Monitor</h3>
-                        <p class="project-description">IoT-based system for monitoring home environmental conditions with real-time alerts and data visualization.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">Arduino</span>
-                            <span class="tech-tag">Python</span>
-                            <span class="tech-tag">IoT</span>
+    <section id="chat" class="section">
+        <div class="container">
+            <div class="content-section">
+                <h2 class="section-title">Chat with Tink 💭</h2>
+                <div class="thinking-process">
+                    <h3 style="text-align: center; margin-bottom: 1rem;">🌟 Design Thinking Journey</h3>
+                    <div class="process-step">
+                        <div class="step-icon">💝</div>
+                        <div>
+                            <strong>Empathy:</strong> Who are you making this for? What do they need?
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-icon">🎯</div>
+                        <div>
+                            <strong>Define:</strong> What's the real problem we're solving?
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-icon">💡</div>
+                        <div>
+                            <strong>Ideate:</strong> Let's brainstorm creative solutions together!
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-icon">🔨</div>
+                        <div>
+                            <strong>Prototype:</strong> Time to build and test your ideas!
+                        </div>
+                    </div>
+                    <div class="process-step">
+                        <div class="step-icon">🧪</div>
+                        <div>
+                            <strong>Test:</strong> How did it work? What can we improve?
                         </div>
                     </div>
                 </div>
-
-                <div class="project-card">
-                    <div class="project-image">🔧</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Automated Tool Organizer</h3>
-                        <p class="project-description">3D printed tool organizer with RFID tracking to keep workshop tools organized and easily locatable.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">3D Printing</span>
-                            <span class="tech-tag">RFID</span>
-                            <span class="tech-tag">CAD</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="project-card">
-                    <div class="project-image">🌱</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Hydroponic Garden Controller</h3>
-                        <p class="project-description">Automated hydroponic system with pH monitoring, nutrient dosing, and growth tracking capabilities.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">Raspberry Pi</span>
-                            <span class="tech-tag">Sensors</span>
-                            <span class="tech-tag">Automation</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="project-card">
-                    <div class="project-image">🎮</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Adaptive Gaming Controller</h3>
-                        <p class="project-description">Custom controller designed for users with limited mobility, featuring pressure-sensitive inputs and voice commands.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">Electronics</span>
-                            <span class="tech-tag">Accessibility</span>
-                            <span class="tech-tag">Voice AI</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="project-card">
-                    <div class="project-image">🚗</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Vehicle Maintenance Tracker</h3>
-                        <p class="project-description">OBD-II connected system that tracks vehicle health, predicts maintenance needs, and provides repair guidance.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">OBD-II</span>
-                            <span class="tech-tag">Machine Learning</span>
-                            <span class="tech-tag">Mobile App</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="project-card">
-                    <div class="project-image">☀️</div>
-                    <div class="project-content">
-                        <h3 class="project-title">Solar Energy Optimizer</h3>
-                        <p class="project-description">Smart solar panel positioning system that tracks sun movement and weather patterns for maximum energy efficiency.</p>
-                        <div class="project-tech">
-                            <span class="tech-tag">Solar</span>
-                            <span class="tech-tag">Motors</span>
-                            <span class="tech-tag">Weather API</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Chat with Tink Section -->
-        <section id="ai-assistant" class="section">
-            <h2 class="section-title">Chat with Tink</h2>
-            <p class="section-subtitle">
-                Tink is your friendly maker fairy who loves helping with creative projects! Share what you're working on and let Tink guide you through the wonderful world of making and creating.
-            </p>
-            
-            <div style="max-width: 600px; margin: 0 auto;">
-                <div class="chat-panel">
+                
+                <div class="chat-container">
                     <div class="chat-header">
-                        <div class="chat-header-icon">🧚</div>
-                        Tink - Your Maker Fairy
+                        <h3>Ready to start your making journey? 🚀</h3>
+                        <p>Tink will guide you through the design thinking process step by step!</p>
                     </div>
                     <div class="chat-messages" id="chatMessages">
-                        <div class="message assistant">
-                            Hello! I'm Tink, your friendly maker fairy! ✨ I love helping people bring their creative ideas to life. Whether you're fixing something, building something new, or just have a wild idea bouncing around in your head, I'm here to help you explore it! What's sparking your curiosity today?
+                        <div class="message tink-message">
+                            <strong>Tink 🧚‍♀️:</strong> Hello there, creative maker! I'm Tink, your friendly design thinking companion. I'm here to help you turn your ideas into amazing hands-on solutions! 
+                            <br><br>
+                            What would you like to make today? Tell me about the idea that's sparkling in your mind! ✨
                         </div>
                     </div>
-                    <div class="typing-indicator" id="typingIndicator">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
                     <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Tell Tink about your ideas or projects...">
-                        <button class="send-btn" id="sendBtn">
-                            ↗
-                        </button>
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Share your making idea with Tink...">
+                        <button class="send-button" onclick="sendMessage()">Send ✨</button>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </section>
 
-        <!-- Contact Section -->
-        <section id="contact" class="section">
-            <h2 class="section-title">Let's Create Magic Together</h2>
-            <p class="section-subtitle">Have a project idea or want to collaborate? I'd love to hear from makers of all ages and backgrounds!</p>
+    <section id="gallery" class="section">
+        <div class="container">
+            <div class="content-section">
+                <h2 class="section-title">Project Gallery 🎨</h2>
+                <p style="text-align: center; margin-bottom: 2rem;">Explore amazing projects created by our maker community!</p>
+                
+                <div class="gallery-grid">
+                    <div class="project-card">
+                        <div class="project-icon">🏠</div>
+                        <h3>Smart Garden Helper</h3>
+                        <p>An automated watering system that helps plants thrive, designed by a 12-year-old maker for their grandmother's garden.</p>
+                    </div>
+                    
+                    <div class="project-card">
+                        <div class="project-icon">♿</div>
+                        <h3>Accessible Game Controller</h3>
+                        <p>A custom controller designed to make gaming accessible for friends with different physical abilities.</p>
+                    </div>
+                    
+                    <div class="project-card">
+                        <div class="project-icon">📚</div>
+                        <h3>Reading Light Reminder</h3>
+                        <p>A gentle LED system that reminds busy parents when it's bedtime story time with their kids.</p>
+                    </div>
+                    
+                    <div class="project-card">
+                        <div class="project-icon">🐕</div>
+                        <h3>Pet Exercise Tracker</h3>
+                        <p>A fun way to make sure pets get enough exercise while keeping owners motivated too!</p>
+                    </div>
+                    
+                    <div class="project-card">
+                        <div class="project-icon">🎵</div>
+                        <h3>Memory Music Box</h3>
+                        <p>A device that plays special songs to help elderly family members with memory care.</p>
+                    </div>
+                    
+                    <div class="project-card">
+                        <div class="project-icon">🌱</div>
+                        <h3>Classroom Compost Monitor</h3>
+                        <p>A sensor system that teaches kids about sustainability while managing their school's composting program.</p>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p><em>Want to share your project? <a href="#contact" style="color: #667eea;">Get in touch!</a></em></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="section">
+        <div class="container">
+            <div class="content-section">
+                <h2 class="section-title">Get in Touch 📬</h2>
+                <p style="text-align: center; margin-bottom: 2rem;">Have questions, want to share your project, or just say hello?</p>
+                
+                <div class="contact-form">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label for="name">Your Name</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="age">Age (optional - helps us personalize our response!)</label>
+                            <input type="number" id="age" name="age" min="1" max="120">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project">What are you working on or dreaming about?</label>
+                            <textarea id="project" name="project" rows="4" placeholder="Tell us about your making journey!"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message" rows="5" required placeholder="How can Tink help you today?"></textarea>
+                        </div>
+                        
+                        <button type="submit" class="submit-button">Send Message ✨</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Making with Tink. Spreading maker magic everywhere! ✨</p>
+            <p>Designed with 💜 for makers of all ages</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Chat functionality (frontend only - you'll need to integrate with your backend)
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const messages = document.getElementById('chatMessages');
+            const messageText = input.value.trim();
+            
+            if (messageText === '') return;
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.innerHTML = `<strong>You:</strong> ${messageText}`;
+            messages.appendChild(userMessage);
+            
+            // Clear input
+            input.value = '';
+            
+            // Scroll to bottom
+            messages.scrollTop = messages.scrollHeight;
+            
+            // Simulate Tink's response (replace with actual API call)
+            setTimeout(() => {
+                const tinkResponse = document.createElement('div');
+                tinkResponse.className = 'message tink-message';
+                tinkResponse.innerHTML = `<strong>Tink 🧚‍♀️:</strong> That's a wonderful idea! Let me help you explore this further. Can you tell me more about who you're trying to help with this solution? Understanding your audience will help us design something truly magical! ✨`;
+                messages.appendChild(tinkResponse);
+                messages.scrollTop = messages.scrollHeight;
+            }, 1000);
+        }
+        
+        // Allow Enter key to send message
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Contact form submission
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('Thank you for reaching out! Tink will get back to you with some maker magic soon! ✨');
+            this.reset();
+        });
+        
+        // Mobile menu toggle (simple version)
+        document.querySelector('.mobile-menu').addEventListener('click', function() {
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+        });
+        
+        // Here's where you would integrate your Claude API
+        // You'll need a backend endpoint to handle the API calls securely
+        async function callClaudeAPI(message) {
+            try {
+                // This is where you'd call your backend endpoint
+                // that safely handles the Claude API integration
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                return data.response;
+            } catch (error) {
+                console.error('Error calling Claude API:', error);
+                return "Oops! Tink's magic is a bit tangled right now. Please try again! ✨";
+            }
+        }
+    </script>
+</body>
+</html>
