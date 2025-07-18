@@ -567,13 +567,19 @@
             });
         });
 
-        // Chat functionality (frontend only - you'll need to integrate with your backend)
-        function sendMessage() {
+        // Chat functionality with Claude API integration
+        async function sendMessage() {
             const input = document.getElementById('chatInput');
             const messages = document.getElementById('chatMessages');
+            const sendButton = document.querySelector('.send-button');
             const messageText = input.value.trim();
             
             if (messageText === '') return;
+            
+            // Disable input and button while processing
+            input.disabled = true;
+            sendButton.disabled = true;
+            sendButton.textContent = 'Thinking... ✨';
             
             // Add user message
             const userMessage = document.createElement('div');
@@ -587,14 +593,28 @@
             // Scroll to bottom
             messages.scrollTop = messages.scrollHeight;
             
-            // Simulate Tink's response (replace with actual API call)
-            setTimeout(() => {
+            try {
+                // Get response from Claude API
+                const response = await callClaudeAPI(messageText);
+                
                 const tinkResponse = document.createElement('div');
                 tinkResponse.className = 'message tink-message';
-                tinkResponse.innerHTML = `<strong>Tink 🧚‍♀️:</strong> That's a wonderful idea! Let me help you explore this further. Can you tell me more about who you're trying to help with this solution? Understanding your audience will help us design something truly magical! ✨`;
+                tinkResponse.innerHTML = `<strong>Tink 🧚‍♀️:</strong> ${response}`;
                 messages.appendChild(tinkResponse);
                 messages.scrollTop = messages.scrollHeight;
-            }, 1000);
+            } catch (error) {
+                const errorResponse = document.createElement('div');
+                errorResponse.className = 'message tink-message';
+                errorResponse.innerHTML = `<strong>Tink 🧚‍♀️:</strong> Oops! My magic sparkles got a bit tangled. Please try again! ✨`;
+                messages.appendChild(errorResponse);
+                messages.scrollTop = messages.scrollHeight;
+            } finally {
+                // Re-enable input and button
+                input.disabled = false;
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send ✨';
+                input.focus();
+            }
         }
         
         // Allow Enter key to send message
@@ -617,21 +637,29 @@
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
         });
         
-        // Here's where you would integrate your Claude API
-        // You'll need a backend endpoint to handle the API calls securely
+        // Conversation history storage
+        let conversationHistory = [];
+
+        // Claude API integration via Netlify Functions
         async function callClaudeAPI(message) {
             try {
-                // This is where you'd call your backend endpoint
-                // that safely handles the Claude API integration
-                const response = await fetch('/api/chat', {
+                const response = await fetch('/.netlify/functions/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ 
+                        message: message,
+                        conversationHistory: conversationHistory
+                    })
                 });
                 
                 const data = await response.json();
+                
+                if (data.conversationHistory) {
+                    conversationHistory = data.conversationHistory;
+                }
+                
                 return data.response;
             } catch (error) {
                 console.error('Error calling Claude API:', error);
