@@ -70,14 +70,14 @@
         .logo-icon {
             width: 32px;
             height: 32px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-size: 16px;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
 
         .nav-links {
@@ -420,14 +420,7 @@
             color: #64748b;
         }
 
-        /* AI Assistant Section */
-        .ai-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-            margin-top: 40px;
-        }
-
+        /* Chat with Tink Section */
         .chat-panel {
             background: white;
             border-radius: 20px;
@@ -543,63 +536,6 @@
             box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
         }
 
-        .code-panel {
-            background: white;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        .code-header {
-            background: #1e293b;
-            padding: 20px;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .code-header-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(59, 130, 246, 0.2);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: #3b82f6;
-        }
-
-        .code-content {
-            padding: 24px;
-            background: #0f172a;
-            color: #e2e8f0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            max-height: 470px;
-            overflow-y: auto;
-        }
-
-        .code-content pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .python-keyword {
-            color: #f472b6;
-        }
-
-        .python-string {
-            color: #10b981;
-        }
-
-        .python-comment {
-            color: #94a3b8;
-        }
-
         .typing-indicator {
             display: none;
             align-items: center;
@@ -665,8 +601,7 @@
                 font-size: 2.5em;
             }
 
-            .contact-container,
-            .ai-container {
+            .contact-container {
                 grid-template-columns: 1fr;
                 gap: 24px;
             }
@@ -712,13 +647,13 @@
     <nav class="nav">
         <div class="nav-container">
             <div class="logo">
-                <div class="logo-icon">✨</div>
-                MakerSpace
+                <div class="logo-icon">🧚</div>
+                Making with Tink
             </div>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#" onclick="showSection('home')" class="active">Home</a></li>
                 <li><a href="#" onclick="showSection('projects')">Projects</a></li>
-                <li><a href="#" onclick="showSection('ai-assistant')">Meet Tink</a></li>
+                <li><a href="#" onclick="showSection('ai-assistant')">Chat with Tink</a></li>
                 <li><a href="#" onclick="showSection('contact')">Contact</a></li>
             </ul>
             <div class="nav-toggle" id="navToggle">
@@ -733,29 +668,29 @@
         <!-- Home Section -->
         <section id="home" class="section active">
             <div class="hero">
-                <h1>Welcome to My MakerSpace</h1>
-                <p>Where creativity meets problem-solving. I help people of all ages and backgrounds bring their ideas to life through thoughtful design and hands-on making.</p>
+                <h1>Making with Tink</h1>
+                <p>Meet Tink, your friendly maker fairy! ✨ Whether you're building, creating, or solving everyday problems, Tink is here to guide you through the magical process of bringing ideas to life.</p>
                 <button class="cta-button" onclick="showSection('ai-assistant')">
-                    <span>🔧</span>
-                    Chat with Tink
+                    <span>🧚</span>
+                    Meet Tink
                 </button>
             </div>
             
             <div class="features-grid">
                 <div class="feature-card">
-                    <div class="feature-icon">🤝</div>
-                    <h3>Design Together</h3>
-                    <p>Using collaborative design thinking to tackle challenges with empathy, creativity, and user-centered solutions.</p>
+                    <div class="feature-icon">💫</div>
+                    <h3>Creative Guidance</h3>
+                    <p>Tink helps you discover new possibilities and approaches to your making projects with gentle, thoughtful questions.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🧠</div>
-                    <h3>AI-Powered Guidance</h3>
-                    <p>Meet Tink, my AI assistant that helps guide you through the design process with thoughtful questions and insights.</p>
+                    <div class="feature-icon">🧚</div>
+                    <h3>Friendly Support</h3>
+                    <p>Like having a wise friend by your side, Tink encourages exploration and helps you think through challenges.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Rapid Prototyping</h3>
-                    <p>Quick iteration and hands-on testing to bring ideas from concept to reality efficiently and effectively.</p>
+                    <div class="feature-icon">✨</div>
+                    <h3>Magic in Making</h3>
+                    <p>Every project is an adventure! Tink makes the process of creating and problem-solving feel magical and fun.</p>
                 </div>
             </div>
         </section>
@@ -846,22 +781,22 @@
             </div>
         </section>
 
-        <!-- AI Assistant Section -->
+        <!-- Chat with Tink Section -->
         <section id="ai-assistant" class="section">
-            <h2 class="section-title">Meet Tink</h2>
+            <h2 class="section-title">Chat with Tink</h2>
             <p class="section-subtitle">
-                Your friendly AI design thinking buddy! Tink helps guide you through creative problem-solving using proven methods from Stanford's d.school. Perfect for makers of all ages and experience levels.
+                Tink is your friendly maker fairy who loves helping with creative projects! Share what you're working on and let Tink guide you through the wonderful world of making and creating.
             </p>
             
-            <div class="ai-container">
+            <div style="max-width: 600px; margin: 0 auto;">
                 <div class="chat-panel">
                     <div class="chat-header">
-                        <div class="chat-header-icon">🔧</div>
-                        Tink - Your Design Thinking Buddy
+                        <div class="chat-header-icon">🧚</div>
+                        Tink - Your Maker Fairy
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         <div class="message assistant">
-                            Hi there! I'm Tink, your design thinking buddy! 🔧 I'm here to help you work through creative challenges using proven methods from Stanford's d.school. Instead of just giving you solutions, I'll ask thoughtful questions to help you discover the best path forward. What problem or idea would you like to explore together today?
+                            Hello! I'm Tink, your friendly maker fairy! ✨ I love helping people bring their creative ideas to life. Whether you're fixing something, building something new, or just have a wild idea bouncing around in your head, I'm here to help you explore it! What's sparking your curiosity today?
                         </div>
                     </div>
                     <div class="typing-indicator" id="typingIndicator">
@@ -870,28 +805,16 @@
                         <div class="typing-dot"></div>
                     </div>
                     <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Tell Tink about your project or problem...">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Tell Tink about your ideas or projects...">
                         <button class="send-btn" id="sendBtn">
                             ↗
                         </button>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <div class="code-panel">
-                    <div class="code-header">
-                        <div class="code-header-icon">🐍</div>
-                        Python + Claude API Integration
-                    </div>
-                    <div class="code-content">
-                        <pre><span class="python-keyword">import</span> anthropic
-
-<span class="python-comment"># Initialize the Anthropic client</span>
-client = anthropic.Anthropic(
-    <span class="python-comment"># API key should be set as environment variable</span>
-    api_key=<span class="python-string">"your_api_key_here"</span>,
-)
-
-<span class="python-comment"># Create a message with design thinking system prompt</span>
-message = client.messages.create(
-    model=<span class="python-string">"claude-sonnet-4-20250514"</span>,
-    max_tokens=<span class="python-keyword">
+        <!-- Contact Section -->
+        <section id="contact" class="section">
+            <h2 class="section-title">Let's Create Magic Together</h2>
+            <p class="section-subtitle">Have a project idea or want to collaborate? I'd love to hear from makers of all ages and backgrounds!</p>
