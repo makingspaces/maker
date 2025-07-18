@@ -601,7 +601,7 @@
             <div class="hero">
                 <h1>Welcome to My MakerSpace</h1>
                 <p>Building innovative solutions through design thinking and hands-on prototyping</p>
-                <button class="cta-button" onclick="showSection('ai-assistant')">Try AI Design Assistant</button>
+                <button class="cta-button" onclick="showSection('ai-assistant')">Chat with Tink</button>
             </div>
             
             <div style="text-align: center; margin-top: 40px;">
@@ -714,18 +714,18 @@
         <section id="ai-assistant" class="section">
             <h2 class="section-title">AI Design Assistant</h2>
             <p style="text-align: center; margin-bottom: 30px; color: #ccc;">
-                Chat with my AI assistant that helps guide you through design thinking processes. It asks thoughtful questions to help you empathize, define, ideate, prototype, and test your solutions.
+                Meet Tink, my AI design thinking buddy! Tink helps guide you through creative problem-solving using the Stanford d.school approach. Ask thoughtful questions, get unstuck, and discover new perspectives on your maker projects.
             </p>
             
             <div class="ai-container">
                 <div class="chat-panel">
                     <div class="chat-header">
-                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ff6b35; font-size: 12px;">🤖</div>
-                        Design Thinking Assistant
+                        <div style="width: 20px; height: 20px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ff6b35; font-size: 12px;">🔧</div>
+                        Tink - Your Design Thinking Buddy
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         <div class="message assistant">
-                            Hello! I'm here to help you work through design challenges using the Stanford d.school approach. What problem are you trying to solve today?
+                            Hi there! I'm Tink, your design thinking buddy! 🔧 I'm here to help you work through creative challenges using the Stanford d.school approach. Instead of just giving you solutions, I'll ask thoughtful questions to help you discover the best path forward. What problem or idea would you like to explore together today?
                         </div>
                     </div>
                     <div class="typing-indicator" id="typingIndicator">
@@ -734,7 +734,7 @@
                         <div class="typing-dot"></div>
                     </div>
                     <div class="chat-input-container">
-                        <input type="text" class="chat-input" id="chatInput" placeholder="Describe your problem or idea...">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Tell Tink about your project or problem...">
                         <button class="send-btn" id="sendBtn">▶</button>
                     </div>
                 </div>
@@ -954,13 +954,13 @@ cause them to stop interacting with you."""</span>,
             let response = "";
             
             if (userMessage.toLowerCase().includes('barbecue') || userMessage.toLowerCase().includes('grill')) {
-                response = "I can see you're dealing with a barbecue stability issue. Before we dive into solutions, I'd love to understand more about your situation. Who typically uses this barbecue? Is it just you, or do you have family gatherings where multiple people might be moving around it?";
+                response = "Oh, a barbecue stability issue! That's definitely a safety concern that's worth solving. 🔧 Before we dive into solutions, I'd love to understand more about your situation. Who typically uses this barbecue? Is it just you, or do you have family gatherings where multiple people might be moving around it?";
             } else if (userMessage.toLowerCase().includes('problem') || userMessage.toLowerCase().includes('issue')) {
-                response = "That sounds like an interesting challenge! To better understand what you're trying to solve, could you tell me more about who this problem affects most? Is it something you're experiencing personally, or have you noticed others struggling with it too?";
+                response = "That sounds like an interesting challenge to tackle! 🤔 To better understand what you're trying to solve, could you tell me more about who this problem affects most? Is it something you're experiencing personally, or have you noticed others struggling with it too?";
             } else if (userMessage.toLowerCase().includes('make') || userMessage.toLowerCase().includes('build')) {
-                response = "Exciting! Building something new is always a great adventure. Before we start brainstorming solutions, I'm curious - what's driving your motivation to create this? Is there a specific frustration you're trying to address, or an opportunity you've spotted?";
+                response = "Exciting! Building something new is always a great adventure. 🛠️ Before we start brainstorming solutions, I'm curious - what's driving your motivation to create this? Is there a specific frustration you're trying to address, or an opportunity you've spotted?";
             } else {
-                response = "Thanks for sharing that with me! I'd love to learn more about the context. Could you help me understand what led you to think about this particular challenge? Sometimes the 'why' behind our problems reveals interesting insights about the best path forward.";
+                response = "Thanks for sharing that with me! I'd love to learn more about the context. 🔍 Could you help me understand what led you to think about this particular challenge? Sometimes the 'why' behind our problems reveals interesting insights about the best path forward.";
             }
             
             addMessage(response, 'assistant');
@@ -1011,14 +1011,14 @@ cause them to stop interacting with you."""</span>,
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            // Add some sample conversation to demonstrate the chat
+            // Add some sample conversation to demonstrate Tink
             setTimeout(() => {
-                addMessage("Hi! I just tried your barbecue example. The wheel issue is definitely a safety concern!", 'user');
+                addMessage("Hi Tink! I just tried your barbecue example. The wheel issue is definitely a safety concern!", 'user');
                 setTimeout(() => {
                     showTypingIndicator();
                     setTimeout(() => {
                         hideTypingIndicator();
-                        addMessage("Great example! That's exactly the kind of everyday problem that benefits from design thinking. Before we jump to solutions like 'buy a new wheel,' I'm curious - who else uses this barbecue with you? Understanding the full context of users helps us design better solutions.", 'assistant');
+                        addMessage("Great example! 🔧 That's exactly the kind of everyday problem that benefits from design thinking. Before we jump to solutions like 'buy a new wheel,' I'm curious - who else uses this barbecue with you? Understanding the full context of users helps us design better solutions that work for everyone!", 'assistant');
                     }, 2000);
                 }, 1000);
             }, 3000);
