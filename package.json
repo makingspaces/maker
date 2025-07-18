@@ -1,0 +1,11 @@
+{
+  "name": "making-with-tink",
+  "version": "1.0.0",
+  "description": "A maker-friendly website with Claude AI integration",
+  "scripts": {
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0"
+  }
+}
