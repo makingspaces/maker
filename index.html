@@ -228,6 +228,64 @@
         .chat-input-container {
             display: flex;
             gap: 1rem;
+            align-items: center;
+        }
+
+        .image-upload-button {
+            background: #f8f9fa;
+            border: 2px solid #e1e5e9;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .image-upload-button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .image-preview {
+            margin-top: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-preview img {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .remove-image {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 0.5rem 0;
         }
 
         .chat-input {
@@ -448,8 +506,16 @@
                         </div>
                     </div>
                     <div class="chat-input-container">
+                        <label for="imageUpload" class="image-upload-button" title="Share a photo with Tink!">
+                            📷
+                        </label>
+                        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
                         <input type="text" class="chat-input" id="chatInput" placeholder="Share your making idea with Tink...">
                         <button class="send-button" onclick="sendMessage()">Send ✨</button>
+                    </div>
+                    <div id="imagePreview" class="image-preview" style="display: none;">
+                        <img id="previewImg" src="" alt="Preview">
+                        <button class="remove-image" onclick="removeImage()">✕</button>
                     </div>
                 </div>
                 
@@ -490,6 +556,24 @@
                         <div>
                             <strong>Test:</strong> How did it work? What can we improve?
                         </div>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h3>Ready to start your making journey? 🚀</h3>
+                        <p>Tink will guide you through the design thinking process step by step!</p>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message tink-message">
+                            <strong>Tink 🧚‍♀️:</strong> Hello there, creative maker! I'm Tink, your friendly design thinking companion. I'm here to help you turn your ideas into amazing hands-on solutions! 
+                            <br><br>
+                            What would you like to make today? Tell me about the idea that's sparkling in your mind! ✨
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Share your making idea with Tink...">
+                        <button class="send-button" onclick="sendMessage()">Send ✨</button>
                     </div>
                 </div>
             </div>
@@ -616,7 +700,7 @@
             const sendButton = document.querySelector('.send-button');
             const messageText = input.value.trim();
             
-            if (messageText === '') return;
+            if (messageText === '' && !currentImage) return;
             
             // Disable input and button while processing
             input.disabled = true;
@@ -626,18 +710,25 @@
             // Add user message
             const userMessage = document.createElement('div');
             userMessage.className = 'message user-message';
-            userMessage.innerHTML = `<strong>You:</strong> ${messageText}`;
+            
+            let messageContent = `<strong>You:</strong> ${messageText}`;
+            if (currentImage) {
+                messageContent += `<br><img src="${currentImage.data}" alt="Uploaded image">`;
+            }
+            userMessage.innerHTML = messageContent;
             messages.appendChild(userMessage);
             
-            // Clear input
+            // Clear input and image
             input.value = '';
+            const imageToSend = currentImage;
+            removeImage();
             
             // Scroll to bottom
             messages.scrollTop = messages.scrollHeight;
             
             try {
                 // Get response from Claude API
-                const response = await callClaudeAPI(messageText);
+                const response = await callClaudeAPI(messageText, imageToSend);
                 
                 const tinkResponse = document.createElement('div');
                 tinkResponse.className = 'message tink-message';
@@ -697,9 +788,42 @@
         
         // Conversation history storage
         let conversationHistory = [];
+        let currentImage = null;
+
+        // Image upload handling
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImage = {
+                        data: e.target.result,
+                        type: file.type
+                    };
+                    
+                    // Show preview
+                    const preview = document.getElementById('imagePreview');
+                    const previewImg = document.getElementById('previewImg');
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    // Update placeholder text
+                    document.getElementById('chatInput').placeholder = "Tell Tink about this image...";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Remove image function
+        function removeImage() {
+            currentImage = null;
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('chatInput').placeholder = "Share your making idea with Tink...";
+            document.getElementById('imageUpload').value = '';
+        }
 
         // Claude API integration via Netlify Functions
-        async function callClaudeAPI(message) {
+        async function callClaudeAPI(message, image = null) {
             try {
                 const response = await fetch('/.netlify/functions/chat', {
                     method: 'POST',
@@ -708,6 +832,7 @@
                     },
                     body: JSON.stringify({ 
                         message: message,
+                        image: image,
                         conversationHistory: conversationHistory
                     })
                 });
