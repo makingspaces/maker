@@ -320,6 +320,41 @@
             border-radius: 15px;
             padding: 2rem;
             margin: 2rem 0;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .design-thinking-toggle {
+            text-align: center;
+            margin: 2rem 0 1rem 0;
+        }
+
+        .toggle-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .toggle-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #toggleIcon {
+            display: inline-block;
+            transition: transform 0.3s ease;
+            margin-left: 0.5rem;
+        }
+
+        .rotated {
+            transform: rotate(180deg);
         }
 
         .process-step {
@@ -400,7 +435,31 @@
         <div class="container">
             <div class="content-section">
                 <h2 class="section-title">Chat with Tink 💭</h2>
-                <div class="thinking-process">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h3>Ready to start your making journey? 🚀</h3>
+                        <p>Tink will guide you through the design thinking process step by step!</p>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message tink-message">
+                            <strong>Tink 🧚‍♀️:</strong> Hello there, creative maker! I'm Tink, your friendly design thinking companion. I'm here to help you turn your ideas into amazing hands-on solutions! 
+                            <br><br>
+                            What would you like to make today? Tell me about the idea that's sparkling in your mind! ✨
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Share your making idea with Tink...">
+                        <button class="send-button" onclick="sendMessage()">Send ✨</button>
+                    </div>
+                </div>
+                
+                <div class="design-thinking-toggle">
+                    <button class="toggle-button" onclick="toggleDesignThinking()">
+                        🌟 Learn about Design Thinking <span id="toggleIcon">▼</span>
+                    </button>
+                </div>
+                
+                <div class="thinking-process" id="designThinkingProcess" style="display: none;">
                     <h3 style="text-align: center; margin-bottom: 1rem;">🌟 Design Thinking Journey</h3>
                     <div class="process-step">
                         <div class="step-icon">💝</div>
@@ -637,6 +696,22 @@
             const navLinks = document.querySelector('.nav-links');
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
         });
+        
+        // Toggle Design Thinking section
+        function toggleDesignThinking() {
+            const process = document.getElementById('designThinkingProcess');
+            const icon = document.getElementById('toggleIcon');
+            
+            if (process.style.display === 'none') {
+                process.style.display = 'block';
+                icon.textContent = '▲';
+                icon.classList.add('rotated');
+            } else {
+                process.style.display = 'none';
+                icon.textContent = '▼';
+                icon.classList.remove('rotated');
+            }
+        }
         
         // Conversation history storage
         let conversationHistory = [];
