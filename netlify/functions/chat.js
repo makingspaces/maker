@@ -21,16 +21,54 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { message, conversationHistory = [] } = JSON.parse(event.body);
+    const { message, image, conversationHistory = [] } = JSON.parse(event.body);
     
     const client = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
     });
 
+    // Build the user message content
+    let userContent = [];
+    
+    // Add text if provided
+    if (message && message.trim()) {
+      userContent.push({
+        type: "text",
+        text: message
+      });
+    }
+    
+    // Add image if provided
+    if (image && image.data) {
+      // Extract base64 data and media type
+      const base64Data = image.data.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+      const mediaType = image.type || 'image/jpeg';
+      
+      userContent.push({
+        type: "image",
+        source: {
+          type: "base64",
+          media_type: mediaType,
+          data: base64Data
+        }
+      });
+      
+      // If no text message, add a default prompt for image analysis
+      if (!message || !message.trim()) {
+        userContent.unshift({
+          type: "text",
+          text: "What do you see in this image? How can we turn this into a maker project or improve it using design thinking?"
+        });
+      }
+    }
+
     // Build messages array with conversation history
     const messages = [
       ...conversationHistory,
-      { role: "user", content: message }
+      { 
+        role: "user", 
+        content: userContent
+      }
     ];
 
     const response = await client.messages.create({
@@ -41,12 +79,18 @@ exports.handler = async (event, context) => {
       messages: messages
     });
 
+    // Build the response content for conversation history
+    const assistantMessage = {
+      role: "assistant",
+      content: response.content[0].text
+    };
+
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
         response: response.content[0].text,
-        conversationHistory: [...messages, { role: "assistant", content: response.content[0].text }]
+        conversationHistory: [...messages, assistantMessage]
       })
     };
   } catch (error) {
