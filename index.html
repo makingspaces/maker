@@ -748,7 +748,13 @@
             const userMessage = document.createElement('div');
             userMessage.className = 'message user-message';
             
-            let messageContent = `<strong>You:</strong> ${messageText}`;
+            let messageContent = '';
+            if (messageText) {
+                messageContent = `<strong>You:</strong> ${messageText}`;
+            } else {
+                messageContent = `<strong>You:</strong> <em>Shared an image</em>`;
+            }
+            
             if (currentImage) {
                 messageContent += `<br><img src="${currentImage.data}" alt="Uploaded image">`;
             }
@@ -765,7 +771,7 @@
             
             try {
                 // Get response from Claude API
-                const response = await callClaudeAPI(messageText, imageToSend);
+                const response = await callClaudeAPI(messageText || '', imageToSend);
                 
                 const tinkResponse = document.createElement('div');
                 tinkResponse.className = 'message tink-message';
@@ -773,6 +779,7 @@
                 messages.appendChild(tinkResponse);
                 messages.scrollTop = messages.scrollHeight;
             } catch (error) {
+                console.error('Chat error:', error);
                 const errorResponse = document.createElement('div');
                 errorResponse.className = 'message tink-message';
                 errorResponse.innerHTML = `<strong>Tink 🧚‍♀️:</strong> Oops! My magic sparkles got a bit tangled. Please try again! ✨`;
@@ -818,21 +825,40 @@
                 submitButton.style.background = '#28a745';
                 this.reset();
                 
-                // Show success message
+                // Show enhanced success message
                 const successMsg = document.createElement('div');
-                successMsg.style.cssText = 'background: #d4edda; color: #155724; padding: 1rem; border-radius: 10px; margin-top: 1rem; text-align: center;';
-                successMsg.innerHTML = 'Thank you for reaching out! Tink will get back to you with some maker magic soon! ✨';
+                successMsg.style.cssText = `
+                    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                    color: #155724;
+                    padding: 2rem;
+                    border-radius: 15px;
+                    margin-top: 2rem;
+                    text-align: center;
+                    border: 2px solid #b8dacc;
+                    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+                `;
+                successMsg.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🧚‍♀️✨</div>
+                    <h3 style="margin-bottom: 1rem; color: #155724;">Thank You!</h3>
+                    <p>Your message has been sent successfully! Tink is excited to help with your making journey and will get back to you soon with some maker magic!</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">Feel free to continue chatting with Tink above while you wait! 💭</p>
+                `;
                 this.appendChild(successMsg);
                 
-                // Reset button after 3 seconds
+                // Smooth scroll to show the message
+                successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Reset button after 5 seconds (longer to let them read the message)
                 setTimeout(() => {
                     submitButton.textContent = originalText;
                     submitButton.style.background = '#667eea';
                     submitButton.disabled = false;
                     if (successMsg.parentNode) {
-                        successMsg.remove();
+                        successMsg.style.opacity = '0';
+                        successMsg.style.transition = 'opacity 0.5s ease';
+                        setTimeout(() => successMsg.remove(), 500);
                     }
-                }, 3000);
+                }, 5000);
             })
             .catch((error) => {
                 // Error handling
@@ -840,12 +866,29 @@
                 submitButton.textContent = 'Try Again ✨';
                 submitButton.style.background = '#dc3545';
                 
-                // Reset button after 2 seconds
+                // Show error message
+                const errorMsg = document.createElement('div');
+                errorMsg.style.cssText = `
+                    background: #f8d7da;
+                    color: #721c24;
+                    padding: 1rem;
+                    border-radius: 10px;
+                    margin-top: 1rem;
+                    text-align: center;
+                    border: 1px solid #f5c6cb;
+                `;
+                errorMsg.innerHTML = 'Oops! Something went wrong. Please try again or reach out directly.';
+                this.appendChild(errorMsg);
+                
+                // Reset button after 3 seconds
                 setTimeout(() => {
                     submitButton.textContent = originalText;
                     submitButton.style.background = '#667eea';
                     submitButton.disabled = false;
-                }, 2000);
+                    if (errorMsg.parentNode) {
+                        errorMsg.remove();
+                    }
+                }, 3000);
             });
         });
         
