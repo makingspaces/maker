@@ -183,12 +183,12 @@
         }
 
         .chat-container {
-            background: white;
+            background: transparent;
             border-radius: 20px;
-            padding: 2rem;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            max-width: 800px;
-            margin: 0 auto;
+            padding: 0;
+            box-shadow: none;
+            max-width: 100%;
+            margin: 0;
         }
 
         .chat-header {
@@ -493,6 +493,7 @@
         <div class="container">
             <div class="content-section">
                 <h2 class="section-title">Chat with Tink 💭</h2>
+                
                 <div class="chat-container">
                     <div class="chat-header">
                         <h3>Ready to start your making journey? 🚀</h3>
@@ -620,7 +621,9 @@
                 <p style="text-align: center; margin-bottom: 2rem;">Have questions, want to share your project, or just say hello?</p>
                 
                 <div class="contact-form">
-                    <form id="contactForm">
+                    <form id="contactForm" name="contact" method="POST" data-netlify="true">
+                        <input type="hidden" name="form-name" value="contact">
+                        
                         <div class="form-group">
                             <label for="name">Your Name</label>
                             <input type="text" id="name" name="name" required>
@@ -674,6 +677,58 @@
                 }
             });
         });
+
+        // Toggle Design Thinking section
+        function toggleDesignThinking() {
+            const process = document.getElementById('designThinkingProcess');
+            const icon = document.getElementById('toggleIcon');
+            
+            if (process.style.display === 'none') {
+                process.style.display = 'block';
+                icon.textContent = '▲';
+                icon.classList.add('rotated');
+            } else {
+                process.style.display = 'none';
+                icon.textContent = '▼';
+                icon.classList.remove('rotated');
+            }
+        }
+        
+        // Conversation history storage
+        let conversationHistory = [];
+        let currentImage = null;
+
+        // Image upload handling
+        document.getElementById('imageUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImage = {
+                        data: e.target.result,
+                        type: file.type
+                    };
+                    
+                    // Show preview
+                    const preview = document.getElementById('imagePreview');
+                    const previewImg = document.getElementById('previewImg');
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    // Update placeholder text
+                    document.getElementById('chatInput').placeholder = "Tell Tink about this image...";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Remove image function
+        function removeImage() {
+            currentImage = null;
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('chatInput').placeholder = "Share your making idea with Tink...";
+            document.getElementById('imageUpload').value = '';
+        }
 
         // Chat functionality with Claude API integration
         async function sendMessage() {
@@ -741,9 +796,12 @@
         
         // Contact form submission
         document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            alert('Thank you for reaching out! Tink will get back to you with some maker magic soon! ✨');
-            this.reset();
+            const submitButton = this.querySelector('.submit-button');
+            submitButton.textContent = 'Sending... ✨';
+            submitButton.disabled = true;
+            
+            // Let Netlify handle the form submission
+            // The form will redirect to a thank you page or show success message
         });
         
         // Mobile menu toggle (simple version)
@@ -752,58 +810,6 @@
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
         });
         
-        // Toggle Design Thinking section
-        function toggleDesignThinking() {
-            const process = document.getElementById('designThinkingProcess');
-            const icon = document.getElementById('toggleIcon');
-            
-            if (process.style.display === 'none') {
-                process.style.display = 'block';
-                icon.textContent = '▲';
-                icon.classList.add('rotated');
-            } else {
-                process.style.display = 'none';
-                icon.textContent = '▼';
-                icon.classList.remove('rotated');
-            }
-        }
-        
-        // Conversation history storage
-        let conversationHistory = [];
-        let currentImage = null;
-
-        // Image upload handling
-        document.getElementById('imageUpload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentImage = {
-                        data: e.target.result,
-                        type: file.type
-                    };
-                    
-                    // Show preview
-                    const preview = document.getElementById('imagePreview');
-                    const previewImg = document.getElementById('previewImg');
-                    previewImg.src = e.target.result;
-                    preview.style.display = 'block';
-                    
-                    // Update placeholder text
-                    document.getElementById('chatInput').placeholder = "Tell Tink about this image...";
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // Remove image function
-        function removeImage() {
-            currentImage = null;
-            document.getElementById('imagePreview').style.display = 'none';
-            document.getElementById('chatInput').placeholder = "Share your making idea with Tink...";
-            document.getElementById('imageUpload').value = '';
-        }
-
         // Claude API integration via Netlify Functions
         async function callClaudeAPI(message, image = null) {
             try {
