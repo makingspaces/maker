@@ -1300,66 +1300,33 @@
         }
 
         // Real Google Sheets integration for community projects
-        async function loadCommunityProjects() {
-            const SHEET_ID = '1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4';
-            const API_KEY = 'AIzaSyAcROsHqJVal_HGWRzdXtmf5nWD3mjS_08';
-            const RANGE = 'Form Responses 1!A:G'; // Updated to correct sheet name
-            
-            try {
-                console.log('🧚‍♀️ Fetching community projects from Google Sheets...');
-                
-                const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${RANGE}?key=${API_KEY}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('📊 Raw Google Sheets data:', data);
-                
-                if (!data.values || data.values.length < 2) {
-                    console.log('ℹ️ No project data found in sheet');
-                    return;
-                }
-                
-                // Parse the data (first row should be headers)
-                const [headers, ...rows] = data.values;
-                console.log('📋 Headers:', headers);
-                console.log('📋 Rows:', rows);
-                
-                // Convert rows to objects based on your column structure
-                const projects = rows.map(row => {
-                    const project = {
-                        name: row[1] || '',           // Project Name
-                        learning: row[2] || '',       // What I Learned  
-                        makerName: row[3] || '',      // Maker Name
-                        makerAge: row[4] || '',       // Maker Age
-                        imageUrl: row[5] || '',       // Project Image URL
-                        approved: row[6] || ''        // Approved
-                    };
-                    return project;
-                }).filter(project => {
-                    // Only show approved projects with content
-                    const isApproved = project.approved.toLowerCase() === 'true' || project.approved.toLowerCase() === 'yes';
-                    const hasContent = project.name && project.learning && project.makerName;
-                    return isApproved && hasContent;
-                });
-                
-                console.log('✅ Approved projects:', projects);
-                
-                if (projects.length === 0) {
-                    console.log('ℹ️ No approved projects to display yet');
-                    return;
-                }
-                
-                // Display the projects
-                displayCommunityProjects(projects);
-                
-            } catch (error) {
-                console.error('❌ Error loading community projects:', error);
-                // Fail silently - don't break the page if sheets are unavailable
-            }
-        }
+        // Secure community projects loading via Netlify function
+		async function loadCommunityProjects() {
+ 		   try {
+  		      console.log('🧚‍♀️ Fetching community projects securely...');
+        
+  		      const response = await fetch('/.netlify/functions/projects');
+        
+  		      if (!response.ok) {
+  		          throw new Error(`HTTP error! status: ${response.status}`);
+  		      }
+  		      
+  		      const data = await response.json();
+   		     console.log('📊 Received projects data:', data);
+  		      
+  		      if (!data.projects || data.projects.length === 0) {
+  		          console.log('ℹ️ No approved projects to display yet');
+  		          return;
+  		      }
+        
+  		      // Display the projects
+  		      displayCommunityProjects(data.projects);
+        
+		    } catch (error) {
+		        console.error('❌ Error loading community projects:', error);
+		        // Fail silently - don't break the page if projects are unavailable
+		    }
+		}
 
         function displayCommunityProjects(projects) {
             const galleryGrid = document.querySelector('.gallery-grid');
@@ -1434,30 +1401,28 @@
         });
 
         // Admin functions for managing the gallery (accessible via browser console)
-        window.adminGallery = {
-            refresh: () => {
-                console.log('🔄 Refreshing community projects...');
-                loadCommunityProjects();
-            },
-            testAPI: async () => {
-                const SHEET_ID = '1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4';
-                const API_KEY = 'AIzaSyAcROsHqJVal_HGWRzdXtmf5nWD3mjS_08';
-                try {
-                    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A:F?key=${API_KEY}`);
-                    const data = await response.json();
-                    console.log('🧪 API Test Result:', data);
-                    return data;
-                } catch (error) {
-                    console.error('❌ API Test Failed:', error);
-                    return error;
-                }
-            },
-            help: () => {
-                console.log(`
+		window.adminGallery = {
+		    refresh: () => {
+		        console.log('🔄 Refreshing community projects...');
+		        loadCommunityProjects();
+		    },
+		    testAPI: async () => {
+		        try {
+		        	const response = await fetch('/.netlify/functions/projects');
+ 		            const data = await response.json();
+         		   console.log('🧪 API Test Result:', data);
+           		 return data;
+      		  } catch (error) {
+      		      console.error('❌ API Test Failed:', error);
+      		      return error;
+    		    }
+   			 },
+   		 help: () => {
+  		      console.log(`
 🧚‍♀️ Making with Tink - Admin Gallery Commands:
 
-adminGallery.refresh()     - Reload community projects from Google Sheets
-adminGallery.testAPI()     - Test the Google Sheets API connection  
+adminGallery.refresh()     - Reload community projects securely
+adminGallery.testAPI()     - Test the secure projects API connection  
 adminGallery.help()        - Show this help message
 
 📊 To approve projects:
@@ -1466,9 +1431,9 @@ adminGallery.help()        - Show this help message
 3. Run adminGallery.refresh() to update the website
 
 🔗 Your Google Sheet: https://docs.google.com/spreadsheets/d/1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4/edit
-                `);
-            }
-        };
+  		      `);
+  		  }
+		};
     </script>
 </body>
 </html>
