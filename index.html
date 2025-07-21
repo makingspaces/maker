@@ -531,59 +531,68 @@
             margin-right: 1rem;
         }
 
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
+        @media (max-width: 768px) { 
             
-            .mobile-menu {
-                display: block;
-            }
+            .nav-links { 
+                display: none; 
+            } 
+            .mobile-menu { 
+                display: block; 
+            } 
+            .hero h1 { 
+                font-size: 2.5rem; 
+            } 
+            .hero p { 
+                font-size: 1.1rem; 
+            } 
+            .content-section { 
+                padding: 2rem; 
+                margin: 1rem 0; 
+            } 
+            .section-title { 
+                font-size: 2rem; 
+            } 
+            .gallery-grid { 
+                grid-template-columns: 1fr; 
+            } 
+            .container { 
+                padding: 0 1rem; 
+            } 
             
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-            
-            .hero p {
-                font-size: 1.1rem;
-            }
-            
-            .content-section {
-                padding: 2rem;
-                margin: 1rem 0;
-            }
-            
-            .section-title {
-                font-size: 2rem;
-            }
-
-            .chat-input-container {
-                gap: 0.5rem; /* Reduced from 1rem */
-                padding: 0 0.5rem;
-                box-sizing: border-box;
-            }
-
-            .send-button {
-                padding: 0.75rem 1rem; /* Reduced from 1rem 2rem */
-            }
-
-            .image-upload-button {
-                width: 40px; /* Reduced from 50px */
-                height: 40px;
-            }
-
-            .chat-input {
-                padding: 0.75rem; /* Reduced from 1rem */
-                min-width: 0; /* Prevents flex overflow */
-            }
-            
-            .gallery-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .container {
-                padding: 0 1rem;
-            }
+            /* Chat mobile fixes */ 
+            .chat-input-container { 
+                gap: 0.5rem !important; 
+                padding: 0 0.5rem; 
+                width: 100%; 
+                box-sizing: border-box; 
+            } 
+            .image-upload-button { 
+                width: 40px !important; 
+                height: 40px !important; 
+                font-size: 1rem !important; 
+                flex-shrink: 0; 
+            } 
+            .chat-input { 
+                padding: 0.75rem !important; 
+                font-size: 0.9rem; 
+                min-width: 0; 
+                flex: 1; 
+            } 
+            .send-button { 
+                padding: 0.75rem 1rem !important; 
+                font-size: 0.9rem; 
+                flex-shrink: 0; 
+            } 
+            .chat-messages { 
+                padding: 0.75rem; 
+                box-sizing: border-box; 
+            } 
+            .message { 
+                max-width: 85%; 
+                padding: 0.75rem; 
+                word-wrap: break-word; 
+                overflow-wrap: break-word; 
+            } 
         }
     </style>
 </head>
