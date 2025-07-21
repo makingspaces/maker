@@ -1303,7 +1303,7 @@
         async function loadCommunityProjects() {
             const SHEET_ID = '1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4';
             const API_KEY = 'AIzaSyAcROsHqJVal_HGWRzdXtmf5nWD3mjS_08';
-            const RANGE = 'Sheet1!A:F'; // Adjust if your data is in a different range
+            const RANGE = 'Form Responses 1!A:F'; // Updated to correct sheet name
             
             try {
                 console.log('🧚‍♀️ Fetching community projects from Google Sheets...');
@@ -1443,7 +1443,7 @@
                 const SHEET_ID = '1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4';
                 const API_KEY = 'AIzaSyAcROsHqJVal_HGWRzdXtmf5nWD3mjS_08';
                 try {
-                    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A:F?key=${API_KEY}`);
+                    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Form Responses 1!A:F?key=${API_KEY}`);
                     const data = await response.json();
                     console.log('🧪 API Test Result:', data);
                     return data;
