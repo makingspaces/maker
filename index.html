@@ -1303,7 +1303,7 @@
         async function loadCommunityProjects() {
             const SHEET_ID = '1UnOCu8HSufrnPXSIZYMV6Mqb0qqBL7uC-21Xh1aA7l4';
             const API_KEY = 'AIzaSyAcROsHqJVal_HGWRzdXtmf5nWD3mjS_08';
-            const RANGE = 'Form Responses 1!A:F'; // Updated to correct sheet name
+            const RANGE = 'Form Responses 1!A:G'; // Updated to correct sheet name
             
             try {
                 console.log('🧚‍♀️ Fetching community projects from Google Sheets...');
@@ -1330,12 +1330,12 @@
                 // Convert rows to objects based on your column structure
                 const projects = rows.map(row => {
                     const project = {
-                        name: row[0] || '',           // Project Name
-                        learning: row[1] || '',       // What I Learned  
-                        makerName: row[2] || '',      // Maker Name
-                        makerAge: row[3] || '',       // Maker Age
-                        imageUrl: row[4] || '',       // Project Image URL
-                        approved: row[5] || ''        // Approved
+                        name: row[1] || '',           // Project Name
+                        learning: row[2] || '',       // What I Learned  
+                        makerName: row[3] || '',      // Maker Name
+                        makerAge: row[4] || '',       // Maker Age
+                        imageUrl: row[5] || '',       // Project Image URL
+                        approved: row[6] || ''        // Approved
                     };
                     return project;
                 }).filter(project => {
