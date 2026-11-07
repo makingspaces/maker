@@ -1,208 +1,167 @@
-/* Wanderbuddy: walk your city with a companion creature.
- * Plain JS, no build step. Leaflet for the map, OpenStreetMap/Overpass for places,
- * localStorage for progress. */
+/* Wanderbuddy: explore your city with a Pokémon partner.
+ * Plain JS, no build step. Leaflet for the map, OpenStreetMap (Overpass + Nominatim)
+ * for places, PokéAPI for Pokémon data and sprites, localStorage for progress.
+ * Personal fan project; Pokémon art is hot-linked from PokéAPI, not bundled. */
 (function () {
   'use strict';
 
   // ---------------------------------------------------------------------------
   // Config
   // ---------------------------------------------------------------------------
-  const DLAT = 0.0005;            // fog cell height (~55 m)
-  const DLNG = 0.0007;            // fog cell width (~55 m at mid latitudes)
-  const DISCOVER_RADIUS = 45;     // metres to "find" a place
-  const FETCH_RADIUS = 700;       // metres around you to look for places
-  const REFETCH_AFTER = 400;      // move this far before looking again
-  const MAX_ACCURACY = 60;        // ignore GPS fixes worse than this for exploring
-  const STORE_KEY = 'wanderbuddy.v1';
+  const DLAT = 0.0005, DLNG = 0.0007;       // fog cell (~55 m)
+  const PLAT = 0.01, PLNG = 0.013;          // place-fetch tile (~1.1 km)
+  const DISCOVER_RADIUS = 40;               // metres to "find" a place
+  const SHOW_UNKNOWN_WITHIN = 450;          // show "?" markers within this range
+  const WALK_SPEED = 28;                    // m/s (game speed, not real life)
+  const RUN_SPEED = 85;
+  const STORE_KEY = 'wanderbuddy.v2';
   const OVERPASS = 'https://overpass-api.de/api/interpreter';
+  const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+  const POKEAPI = 'https://pokeapi.co/api/v2';
+  const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+  const CRY = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest';
   const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
 
-  // Place categories: what OSM tags map to, and how they look.
-  const CATS = {
-    food:    { label: 'Food & drink',     icon: '🥐' },
-    water:   { label: 'Water',            icon: '⛲' },
-    green:   { label: 'Parks & gardens',  icon: '🌳' },
-    history: { label: 'History',          icon: '🏛️' },
-    art:     { label: 'Art & views',      icon: '🎨' },
-    books:   { label: 'Books & museums',  icon: '📚' },
-    play:    { label: 'Play & sport',     icon: '🛝' },
+  const sprite = {
+    thumb: (id) => `${SPR}/${id}.png`,
+    art: (id, shiny) => `${SPR}/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png`,
+    walk: (id, shiny, back) => `${SPR}/other/showdown/${back ? 'back/' : ''}${shiny ? 'shiny/' : ''}${id}.gif`,
+    walkFallback: (id, shiny, back) => `${SPR}/${back ? 'back/' : ''}${shiny ? 'shiny/' : ''}${id}.png`,
   };
 
-  // Original companions. Each has a favourite category and a voice.
-  const CREATURES = [
-    { id: 'embit',  name: 'Embit',  type: 'Ember',  loves: 'food',    body: '#ff7a45', belly: '#ffe0c2', ear: 'pointy', tail: 'flame',
-      blurb: 'A fox-ish spark with a warm nose. Sniffs out bakeries and cafés from blocks away.',
-      say: { love: ['Do you smell that?! {p}! Let\'s go in!', 'My tail is glowing. {p} smells AMAZING.', '{p}! I\'m adding this to my snack map.'],
-             like: ['{p}. Not food, but I\'ll allow it.', 'Ooh, {p}. Warm vibes.'],
-             idle: ['Is it lunchtime yet?', 'I could walk forever. Or at least until snacks.', 'Every street smells different!'] } },
-    { id: 'drizl',  name: 'Drizl',  type: 'Tide',   loves: 'water',   body: '#4aa8ff', belly: '#d8f0ff', ear: 'fin', tail: 'fin',
-      blurb: 'A pocket-sized otter of rain. Happiest near fountains, ponds and rivers.',
-      say: { love: ['Splish! {p}! Can I jump in? Please?', '{p}! The water here is singing.', 'I found {p}! Best day.'],
-             like: ['{p}. Nice, but a bit dry.', 'Hmm, {p}. Any puddles nearby?'],
-             idle: ['Was that a raindrop? No? Okay.', 'I\'m keeping an eye out for water.', 'Puddle radar: active.'] } },
-    { id: 'sprig',  name: 'Sprig',  type: 'Grove',  loves: 'green',   body: '#5cc56b', belly: '#e3f7d6', ear: 'leaf', tail: 'leaf',
-      blurb: 'A shy little deer-sprout. Perks up in parks, gardens and anywhere with grass.',
-      say: { love: ['{p}! Look at all the green!', 'Can we sit in {p} for a minute?', 'The trees in {p} are saying hi.'],
-             like: ['{p}. Hm. Needs more plants.', 'Oh, {p}. I like it here.'],
-             idle: ['Slow down, I\'m looking at a leaf.', 'Every crack in the sidewalk has a tiny plant.', 'The city is greener than you think.'] } },
-    { id: 'kobble', name: 'Kobble', type: 'Stone',  loves: 'history', body: '#a08c7a', belly: '#e9ddcf', ear: 'horn', tail: 'stub',
-      blurb: 'A pebble-backed tortoise who remembers everything. Loves old buildings and monuments.',
-      say: { love: ['{p}. This place has stories. Lots of them.', 'I remember when {p} was new. Probably.', 'Stop. Read the plaque at {p}. For me.'],
-             like: ['{p}. Young, but promising.', '{p}. I\'ll remember this.'],
-             idle: ['No rush. Stones are patient.', 'This street used to be something else.', 'I like old corners best.'] } },
-    { id: 'gusto',  name: 'Gusto',  type: 'Breeze', loves: 'art',     body: '#b48cff', belly: '#efe6ff', ear: 'tuft', tail: 'swirl',
-      blurb: 'A feathery wisp who chases murals, sculptures and big views.',
-      say: { love: ['Whoa, {p}! Hold still, I\'m inspired.', '{p}! I want to live inside this.', 'Look at {p}! Now look UP.'],
-             like: ['{p}. It\'s got a mood.', '{p}, nice. Is there a view nearby?'],
-             idle: ['The wind says turn left.', 'Somebody painted that wall. Who?', 'Let\'s find something tall.'] } },
-    { id: 'pagelet',name: 'Pagelet',type: 'Lore',   loves: 'books',   body: '#ffc145', belly: '#fff3d1', ear: 'round', tail: 'bookmark',
-      blurb: 'A round little owl-mouse who collects facts. Loves libraries and museums.',
-      say: { love: ['{p}!! So many things to learn!', 'Can we go into {p}? Five minutes. Ten. An hour.', '{p}. My favorite word is "exhibit".'],
-             like: ['{p}. I\'m taking notes.', 'Interesting. {p}. Filed.'],
-             idle: ['Did you know streets have names for reasons?', 'I wonder who lives up there.', 'Every block is a new page.'] } },
+  const CATS = {
+    food:    { label: 'Food & drink',    icon: '🥐' },
+    water:   { label: 'Water',           icon: '⛲' },
+    green:   { label: 'Parks & gardens', icon: '🌳' },
+    history: { label: 'History',         icon: '🏛️' },
+    art:     { label: 'Art & views',     icon: '🎨' },
+    books:   { label: 'Books & museums', icon: '📚' },
+    play:    { label: 'Play & sport',    icon: '🛝' },
+  };
+  // Primary type -> favourite kind of place
+  const TYPE_LOVES = {
+    fire: 'food', normal: 'food',
+    water: 'water', ice: 'water',
+    grass: 'green', bug: 'green', poison: 'green',
+    rock: 'history', ground: 'history', steel: 'history', dark: 'history',
+    psychic: 'books', ghost: 'books',
+    fairy: 'art', flying: 'art', dragon: 'art',
+    electric: 'play', fighting: 'play',
+  };
+  const TYPE_COLOR = {
+    normal: '#9fa19f', fire: '#e62829', water: '#2980ef', grass: '#3fa129', electric: '#d4a900', ice: '#3dcef3',
+    fighting: '#ff8000', poison: '#9141cb', ground: '#915121', flying: '#81b9ef', psychic: '#ef4179', bug: '#91a119',
+    rock: '#afa981', ghost: '#704170', dragon: '#5060e1', dark: '#624d4e', steel: '#60a1b8', fairy: '#ef70ef',
+  };
+  const FEATURED = [
+    [25, 'Pikachu'], [1, 'Bulbasaur'], [4, 'Charmander'], [7, 'Squirtle'], [133, 'Eevee'], [6, 'Charizard'],
+    [94, 'Gengar'], [143, 'Snorlax'], [54, 'Psyduck'], [39, 'Jigglypuff'], [151, 'Mew'], [150, 'Mewtwo'],
+    [197, 'Umbreon'], [175, 'Togepi'], [448, 'Lucario'], [393, 'Piplup'], [700, 'Sylveon'], [906, 'Sprigatito'],
+    [909, 'Fuecoco'], [912, 'Quaxly'],
   ];
 
-  const CUSTOM_SAY = {
-    love: ['{p}! This is my favorite kind of place!', 'We found {p}! I knew it was close.', '{p}! Can we stay a bit?'],
-    like: ['Ooh, {p}.', '{p}. Adding it to the journal.', 'Nice find: {p}.'],
-    idle: ['Where to next?', 'I like walking with you.', 'Let\'s go somewhere we\'ve never been.'],
+  // What your partner says. {p} = place name, {n} = Pokémon name.
+  const LINES = {
+    food:    { love: ['Do you smell that?! {p}! Let\'s go in!', '{p}! I\'m adding this to my snack map.', 'Stop! {p}. We have to.'],
+               idle: ['Is it snack time yet?', 'Every street smells different!'] },
+    water:   { love: ['Splash! {p}! Can I jump in?', '{p}! The water here is singing.', 'I found {p}! Best day.'],
+               idle: ['Puddle radar: active.', 'I can smell the water from here.'] },
+    green:   { love: ['{p}! Look at all the green!', 'Can we sit in {p} for a minute?', 'The trees in {p} are saying hi.'],
+               idle: ['Slow down, I\'m looking at a leaf.', 'The city is greener than you think.'] },
+    history: { love: ['{p}. This place has stories. Lots of them.', 'Read the plaque at {p}. For me.', '{p}! Old things are the best things.'],
+               idle: ['This street used to be something else.', 'I like old corners best.'] },
+    art:     { love: ['Whoa, {p}! Hold still, I\'m inspired.', '{p}! Look at it! Now look UP.', 'I want to live inside {p}.'],
+               idle: ['Let\'s find something tall.', 'Somebody painted that wall. Who?'] },
+    books:   { love: ['{p}!! So many things to learn!', 'Can we go into {p}? Five minutes. Ten. An hour.', '{p}. I feel smarter already.'],
+               idle: ['I wonder who lives up there.', 'Every block is a new page.'] },
+    play:    { love: ['{p}! Race you!', 'Let\'s train at {p}!', '{p}! I have SO much energy right now.'],
+               idle: ['I could go all day!', 'Faster! Let\'s run!'] },
   };
-  const NEW_BLOCK_LINES = ['New street! It smells different here.', 'We\'ve never been here before!', 'The fog\'s lifting!', 'Uncharted territory!'];
-  const RETURN_LINES = ['We know this block.', 'Familiar territory.', 'Home turf.'];
-  const PET_LINES = ['Hehe.', '♡', 'Again!', '*happy noises*', 'Let\'s keep going!'];
+  const LIKE_LINES = ['Ooh, {p}.', '{p}. Adding it to the journal.', 'Nice find: {p}.', '{p}? Huh. Neat.'];
+  const IDLE_LINES = ['Where to next?', 'Let\'s go somewhere we\'ve never been.', 'I like exploring with you.'];
+  const NEW_BLOCK_LINES = ['New street!', 'We\'ve never been here before!', 'The fog\'s lifting!', 'Uncharted territory!'];
+  const PET_LINES = ['♡', '*happy {n} noises*', 'Hehe!', 'Again!', 'Let\'s keep going!'];
 
   // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
   const defaultState = () => ({
-    active: null,          // companion key
-    companions: {},        // key -> { base, nick, xp, custom?: {img, loves} }
-    explored: [],          // fog cell keys
+    active: null,          // key into partners
+    partners: {},          // key -> { id, species, nick, shiny, types, xp }
+    explored: [],
     places: {},            // osm id -> { name, cat, lat, lng, at, by, quote }
     meters: 0,
-    demo: false,
     lastPos: null,
   });
-
   let state = load();
   const explored = new Set(state.explored);
-  let known = {};          // fetched-but-not-yet-discovered places
-  let lastFetch = null;    // [lat, lng] of last Overpass query
-  let fetching = false;
-  let pos = null;          // current [lat, lng]
+  const known = {};                // fetched, undiscovered places
+  const fetchedTiles = new Set();
+  let fetching = false, nextFetchOK = 0;
+  let pos = state.lastPos ? state.lastPos.slice() : null;
   let lastCountedPos = null;
   let followMe = true;
   let saveTimer = null;
-  let geoWatch = null;
+  let started = false;
 
   function load() {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) return Object.assign(defaultState(), JSON.parse(raw));
-    } catch (e) { /* private mode or corrupt; start fresh */ }
+    } catch (e) { /* private mode or corrupt */ }
     return defaultState();
   }
   function save(now) {
     clearTimeout(saveTimer);
     const write = () => {
       state.explored = Array.from(explored);
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-      catch (e) { toast('Could not save progress (storage full?)'); }
+      state.lastPos = pos;
+      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { toast('Could not save progress'); }
     };
     if (now) write(); else saveTimer = setTimeout(write, 1500);
   }
 
   const $ = (id) => document.getElementById(id);
-  const comp = () => state.companions[state.active];
-  const baseOf = (c) => CREATURES.find((x) => x.id === c.base);
-  const lovesOf = (c) => (c.custom ? c.custom.loves : baseOf(c).loves);
-  const linesOf = (c) => (c.custom ? CUSTOM_SAY : baseOf(c).say);
+  const partner = () => state.partners[state.active];
+  const nameOf = (p) => p.nick || p.species;
+  const lovesOf = (p) => TYPE_LOVES[(p.types && p.types[0]) || 'normal'] || 'food';
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const fill = (s, place) => s.replace('{p}', place || '').replace('{n}', partner() ? partner().species : '');
+  const pretty = (slug) => slug.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
+    .replace(/^Mr /, 'Mr. ').replace(/ Jr$/, ' Jr.').replace(/^Nidoran F$/, 'Nidoran♀').replace(/^Nidoran M$/, 'Nidoran♂');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // ---------------------------------------------------------------------------
-  // Creature art (inline SVG, generated)
+  // Progress
   // ---------------------------------------------------------------------------
-  function creatureSVG(cr) {
-    const b = cr.body, bl = cr.belly;
-    const dark = shade(b, -0.28);
-    const ears = {
-      pointy: `<path d="M27 44 L22 12 L46 32Z" fill="${b}"/><path d="M73 44 L78 12 L54 32Z" fill="${b}"/>
-               <path d="M29 38 L26 20 L40 31Z" fill="${bl}"/><path d="M71 38 L74 20 L60 31Z" fill="${bl}"/>`,
-      fin:    `<path d="M24 46 Q14 30 30 26 Q34 36 36 40Z" fill="${dark}"/><path d="M76 46 Q86 30 70 26 Q66 36 64 40Z" fill="${dark}"/>
-               <path d="M50 30 Q46 14 56 8 Q58 20 56 32Z" fill="${dark}"/>`,
-      leaf:   `<path d="M34 34 Q18 10 26 4 Q40 14 40 32Z" fill="#3e9a4c"/><path d="M66 34 Q82 10 74 4 Q60 14 60 32Z" fill="#3e9a4c"/>
-               <path d="M28 8 Q34 20 38 30" stroke="#2c7a38" stroke-width="1.5" fill="none"/><path d="M72 8 Q66 20 62 30" stroke="#2c7a38" stroke-width="1.5" fill="none"/>`,
-      horn:   `<path d="M36 32 Q32 18 40 14 Q42 24 42 32Z" fill="#e9ddcf"/><path d="M64 32 Q68 18 60 14 Q58 24 58 32Z" fill="#e9ddcf"/>`,
-      tuft:   `<path d="M40 32 Q34 10 44 4 Q46 18 48 30Z" fill="${dark}"/><path d="M50 30 Q52 6 62 6 Q58 18 56 32Z" fill="${b}"/>
-               <path d="M58 32 Q70 14 76 20 Q66 26 62 36Z" fill="${dark}"/>`,
-      round:  `<circle cx="28" cy="34" r="12" fill="${b}"/><circle cx="72" cy="34" r="12" fill="${b}"/>
-               <circle cx="28" cy="34" r="6.5" fill="${bl}"/><circle cx="72" cy="34" r="6.5" fill="${bl}"/>`,
-    }[cr.ear];
-    const tails = {
-      flame:    `<path d="M76 74 Q96 70 92 48 Q88 60 82 58 Q90 44 80 36 Q82 52 72 62Z" fill="#ffc145"/><path d="M78 70 Q90 64 86 54 Q82 62 76 64Z" fill="#ff4d2d"/>`,
-      fin:      `<path d="M74 74 Q94 80 96 62 Q86 68 76 64Z" fill="${dark}"/>`,
-      leaf:     `<path d="M74 72 Q96 66 94 50 Q80 54 74 64Z" fill="#3e9a4c"/>`,
-      stub:     `<path d="M76 76 Q88 78 86 70 Q80 70 76 70Z" fill="${dark}"/>`,
-      swirl:    `<path d="M76 70 Q96 66 92 50 Q88 40 80 46 Q76 52 84 54" stroke="${dark}" stroke-width="5" fill="none" stroke-linecap="round"/>`,
-      bookmark: `<path d="M74 74 L92 70 L92 86 L86 80 L80 86 L80 74Z" fill="#ff7a45"/>`,
-    }[cr.tail];
-    const shell = cr.tail === 'stub'
-      ? `<path d="M28 56 Q50 30 72 56Z" fill="#7d6b5b"/><path d="M38 48 L50 42 L62 48 M44 52 L50 46 L56 52" stroke="#a08c7a" stroke-width="2" fill="none"/>` : '';
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <ellipse cx="50" cy="94" rx="24" ry="4" fill="rgba(0,0,0,.18)"/>
-      ${tails}${ears}
-      <ellipse cx="38" cy="88" rx="8" ry="5" fill="${dark}"/><ellipse cx="62" cy="88" rx="8" ry="5" fill="${dark}"/>
-      <ellipse cx="50" cy="62" rx="30" ry="28" fill="${b}"/>
-      ${shell}
-      <ellipse cx="50" cy="72" rx="17" ry="14" fill="${bl}"/>
-      <circle cx="39" cy="57" r="5" fill="#1b1f33"/><circle cx="61" cy="57" r="5" fill="#1b1f33"/>
-      <circle cx="40.6" cy="55.2" r="1.8" fill="#fff"/><circle cx="62.6" cy="55.2" r="1.8" fill="#fff"/>
-      <ellipse cx="31" cy="66" rx="5" ry="3" fill="#ff8fa3" opacity=".6"/><ellipse cx="69" cy="66" rx="5" ry="3" fill="#ff8fa3" opacity=".6"/>
-      <path d="M45 65 Q50 70 55 65" stroke="#1b1f33" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-    </svg>`;
-  }
-  function shade(hex, amt) {
-    const n = parseInt(hex.slice(1), 16);
-    const f = (c) => Math.max(0, Math.min(255, Math.round(c + c * amt)));
-    return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(f).map((c) => c.toString(16).padStart(2, '0')).join('');
-  }
-  function companionArt(c) {
-    if (c.custom) return `<img src="${c.custom.img}" alt="">`;
-    return creatureSVG(baseOf(c));
-  }
-
-  // ---------------------------------------------------------------------------
-  // Progress maths
-  // ---------------------------------------------------------------------------
-  const levelFor = (xp) => Math.floor(Math.sqrt(xp / 200)) + 1;   // ~1 level per good walk early on
-  const xpForLevel = (lv) => 200 * (lv - 1) * (lv - 1);
+  const levelFor = (xp) => Math.floor(Math.sqrt(xp / 300)) + 1;
+  const xpForLevel = (lv) => 300 * (lv - 1) * (lv - 1);
   function addXP(n) {
-    const c = comp();
-    const before = levelFor(c.xp);
-    c.xp += n;
-    const after = levelFor(c.xp);
+    const p = partner(); if (!p) return;
+    const before = levelFor(p.xp);
+    p.xp += n;
+    const after = levelFor(p.xp);
     if (after > before) {
-      say(`Level ${after}! I feel like we really get each other now.`, true);
-      hop();
-      toast(`💛 ${c.nick} reached bond level ${after}`);
+      say(`Friendship level ${after}! I think we make a great team.`, true);
+      hop(); cry();
+      toast(`💛 ${nameOf(p)} reached friendship ${after}`);
     }
     renderHUD();
   }
 
   function haversine(a, b) {
-    const R = 6371000, toR = Math.PI / 180;
-    const dLat = (b[0] - a[0]) * toR, dLng = (b[1] - a[1]) * toR;
-    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * toR) * Math.cos(b[0] * toR) * Math.sin(dLng / 2) ** 2;
+    const R = 6371000, r = Math.PI / 180;
+    const dLat = (b[0] - a[0]) * r, dLng = (b[1] - a[1]) * r;
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(s));
   }
-  const cellOf = (lat, lng) => [Math.floor(lat / DLAT), Math.floor(lng / DLNG)];
   const keyOf = (i, j) => i + ',' + j;
 
   // ---------------------------------------------------------------------------
-  // Map + fog layer
+  // Map + fog
   // ---------------------------------------------------------------------------
-  const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 19, minZoom: 3 })
-    .setView(state.lastPos || [40.7128, -74.006], state.lastPos ? 17 : 13);
+  const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 19, minZoom: 3, keyboard: false })
+    .setView(pos || [40.7128, -74.006], pos ? 17 : 12);
   L.tileLayer(TILES, {
     subdomains: 'abcd', maxZoom: 19,
     attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
@@ -227,15 +186,10 @@
     ctx.clearRect(0, 0, size.x, size.y);
     ctx.fillStyle = 'rgba(27,31,51,0.62)';
     ctx.fillRect(0, 0, size.x, size.y);
-
-    const z = coords.z;
-    const nwPt = coords.scaleBy(size);
-    const nw = m.unproject(nwPt, z);
-    const se = m.unproject(nwPt.add(size), z);
-    // Pad by a cell so soft edges that spill across tile borders are drawn.
+    const z = coords.z, nwPt = coords.scaleBy(size);
+    const nw = m.unproject(nwPt, z), se = m.unproject(nwPt.add(size), z);
     const i0 = Math.floor(se.lat / DLAT) - 1, i1 = Math.floor(nw.lat / DLAT) + 1;
     const j0 = Math.floor(nw.lng / DLNG) - 1, j1 = Math.floor(se.lng / DLNG) + 1;
-
     const cells = [];
     if ((i1 - i0 + 1) * (j1 - j0 + 1) <= explored.size) {
       for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if (explored.has(keyOf(i, j))) cells.push([i, j]);
@@ -246,70 +200,100 @@
       });
     }
     if (!cells.length) return;
-
     ctx.globalCompositeOperation = 'destination-out';
     for (const [i, j] of cells) {
       const a = m.project([(i + 0.5) * DLAT, (j + 0.5) * DLNG], z).subtract(nwPt);
       const b = m.project([(i + 1) * DLAT, (j + 1) * DLNG], z).subtract(nwPt);
       const r = Math.max(2, Math.hypot(b.x - a.x, b.y - a.y) * 1.25);
       const g = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, r);
-      g.addColorStop(0, 'rgba(0,0,0,1)');
-      g.addColorStop(0.6, 'rgba(0,0,0,1)');
-      g.addColorStop(1, 'rgba(0,0,0,0)');
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.6, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = g;
       ctx.fillRect(a.x - r, a.y - r, r * 2, r * 2);
     }
   }
-  // Redraw only the tiles that touch newly explored cells.
   function refreshFog(newCells) {
-    const tiles = fog._tiles; const size = fog.getTileSize();
+    const tiles = fog._tiles, size = fog.getTileSize();
     for (const k in tiles) {
       const t = tiles[k]; if (!t.el || !t.coords) continue;
       const nwPt = t.coords.scaleBy(size);
       const nw = map.unproject(nwPt, t.coords.z), se = map.unproject(nwPt.add(size), t.coords.z);
       const hit = newCells.some(([i, j]) => {
         const lat = (i + 0.5) * DLAT, lng = (j + 0.5) * DLNG;
-        const padLat = DLAT * 2, padLng = DLNG * 2;
-        return lat <= nw.lat + padLat && lat >= se.lat - padLat && lng >= nw.lng - padLng && lng <= se.lng + padLng;
+        return lat <= nw.lat + 2 * DLAT && lat >= se.lat - 2 * DLAT && lng >= nw.lng - 2 * DLNG && lng <= se.lng + 2 * DLNG;
       });
       if (hit) drawFogTile(t.el, t.coords, map, size);
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Markers
+  // Your Pokémon on the map
   // ---------------------------------------------------------------------------
-  let meMarker = null;
-  function meIcon() {
-    return L.divIcon({ className: 'me-marker', html: `<div class="me-inner">${companionArt(comp())}</div>`, iconSize: [56, 56], iconAnchor: [28, 50] });
+  let meMarker = null, meImg = null;
+  let facing = { back: false, flip: false };
+  function buildMarker() {
+    if (meMarker) meMarker.remove();
+    const p = partner();
+    const icon = L.divIcon({ className: 'me-marker', html: '<div class="me-inner"><div class="me-shadow"></div><img alt=""></div>', iconSize: [96, 96], iconAnchor: [48, 92] });
+    meMarker = L.marker(pos, { icon, zIndexOffset: 1000, interactive: false, keyboard: false }).addTo(map);
+    meImg = meMarker.getElement().querySelector('img');
+    meImg.onerror = () => {
+      // Some Pokémon lack an animated sprite: fall back to the static one.
+      const fb = sprite.walkFallback(p.id, p.shiny, facing.back);
+      if (meImg.src !== fb) meImg.src = fb;
+    };
+    // Showdown GIFs are drawn at their native size; scale small ones up a little.
+    meImg.onload = () => { const s = Math.min(2, 80 / Math.max(meImg.naturalWidth, meImg.naturalHeight)); meImg.style.width = Math.round(meImg.naturalWidth * Math.max(1, s)) + 'px'; };
+    setFacing(false, false, true);
   }
-  function placeMarkers() {
-    // discovered places
-    if (!placeMarkers.layer) placeMarkers.layer = L.layerGroup().addTo(map);
-    placeMarkers.layer.clearLayers();
-    const loves = state.active ? lovesOf(comp()) : null;
+  function setFacing(back, flip, force) {
+    if (!meImg) return;
+    if (!force && back === facing.back && flip === facing.flip) return;
+    const p = partner();
+    if (back !== facing.back || force) meImg.src = sprite.walk(p.id, p.shiny, back);
+    facing = { back, flip };
+    // Front sprites face left; back sprites face right.
+    meImg.classList.toggle('flip', back ? !flip : flip);
+  }
+  function hop() {
+    const el = meMarker && meMarker.getElement(); if (!el) return;
+    el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
+  }
+  let audio = null;
+  function cry() {
+    const p = partner(); if (!p) return;
+    try { audio = new Audio(`${CRY}/${p.id}.ogg`); audio.volume = 0.35; audio.play().catch(() => {}); } catch (e) { /* no audio */ }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Places
+  // ---------------------------------------------------------------------------
+  let placeLayer = L.layerGroup().addTo(map);
+  let unknownLayer = L.layerGroup().addTo(map);
+  function drawPlaces() {
+    placeLayer.clearLayers();
+    const loves = partner() ? lovesOf(partner()) : null;
     for (const id in state.places) {
       const p = state.places[id];
       const icon = L.divIcon({ className: '', html: `<div class="place-marker${p.cat === loves ? ' loved' : ''}">${CATS[p.cat].icon}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`<b>${esc(p.name)}</b><br><i>${esc(p.quote || '')}</i>`).addTo(placeMarkers.layer);
-    }
-    // known but undiscovered: only show those near explored territory, as "?"
-    for (const id in known) {
-      const p = known[id];
-      if (pos && haversine(pos, [p.lat, p.lng]) > 350) continue;
-      const icon = L.divIcon({ className: '', html: '<div class="place-marker unknown">?</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
-      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`Something's here… walk closer to find out.`).addTo(placeMarkers.layer);
+      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`<b>${esc(p.name)}</b><br><i>${esc(p.quote || '')}</i>`).addTo(placeLayer);
     }
   }
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const qIcon = L.divIcon({ className: '', html: '<div class="place-marker unknown">?</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
+  function drawUnknown() {
+    unknownLayer.clearLayers();
+    if (!pos) return;
+    for (const id in known) {
+      const p = known[id];
+      if (Math.abs(p.lat - pos[0]) > 0.006 || Math.abs(p.lng - pos[1]) > 0.008) continue;
+      if (haversine(pos, [p.lat, p.lng]) > SHOW_UNKNOWN_WITHIN) continue;
+      L.marker([p.lat, p.lng], { icon: qIcon, keyboard: false }).bindPopup('Something\'s here… get closer!').addTo(unknownLayer);
+    }
+  }
 
-  // ---------------------------------------------------------------------------
-  // Places (Overpass)
-  // ---------------------------------------------------------------------------
   function categorize(t) {
     const a = t.amenity, l = t.leisure, tr = t.tourism;
     if (/^(restaurant|cafe|bakery|ice_cream|pub|bar|marketplace|food_court)$/.test(a) || /^(bakery|pastry|confectionery|deli)$/.test(t.shop)) return 'food';
-    if (/^(fountain|drinking_water)$/.test(a) || t.natural === 'water' || t.water || /^(river|canal)$/.test(t.waterway)) return 'water';
+    if (/^(fountain|drinking_water)$/.test(a) || t.natural === 'water' || /^(river|canal)$/.test(t.waterway)) return 'water';
     if (/^(park|garden|nature_reserve)$/.test(l)) return 'green';
     if (t.historic) return 'history';
     if (/^(artwork|viewpoint|attraction|gallery)$/.test(tr) || a === 'arts_centre') return 'art';
@@ -318,27 +302,30 @@
     return null;
   }
   function fallbackName(cat, t) {
-    const by = {
+    return {
       food: 'a little café', water: t.amenity === 'drinking_water' ? 'a water fountain' : t.amenity === 'fountain' ? 'a fountain' : 'some water',
       green: 'a patch of green', history: 'an old landmark', art: t.tourism === 'artwork' ? 'a piece of street art' : 'a cool spot',
       books: 'a place full of books', play: 'a playground',
-    };
-    return by[cat];
+    }[cat];
   }
-  async function fetchPlaces(force) {
-    if (!pos || fetching) return;
-    if (!force && lastFetch && haversine(pos, lastFetch) < REFETCH_AFTER) return;
+  // Places are fetched in ~1 km tiles: entering an unfetched tile loads it plus its neighbours.
+  async function maybeFetchPlaces(force) {
+    if (!pos || fetching || Date.now() < nextFetchOK) return;
+    const ti = Math.floor(pos[0] / PLAT), tj = Math.floor(pos[1] / PLNG);
+    if (!force && fetchedTiles.has(keyOf(ti, tj))) return;
     fetching = true;
-    const [lat, lng] = pos, R = FETCH_RADIUS;
-    const around = `(around:${R},${lat.toFixed(5)},${lng.toFixed(5)})`;
-    const q = `[out:json][timeout:20];(
-      nwr${around}["amenity"~"^(restaurant|cafe|bakery|ice_cream|pub|marketplace|library|arts_centre|fountain|drinking_water)$"];
-      nwr${around}["shop"~"^(bakery|books)$"];
-      nwr${around}["leisure"~"^(park|garden|nature_reserve|playground|skatepark)$"];
-      nwr${around}["historic"]["name"];
-      nwr${around}["tourism"~"^(museum|viewpoint|attraction|artwork|gallery)$"];
-      nwr${around}["natural"="water"]["name"];
-    );out center 250;`;
+    const s = ((ti - 1) * PLAT).toFixed(5), n = ((ti + 2) * PLAT).toFixed(5);
+    const w = ((tj - 1) * PLNG).toFixed(5), e = ((tj + 2) * PLNG).toFixed(5);
+    const bb = `(${s},${w},${n},${e})`;
+    const q = `[out:json][timeout:25];(
+      nwr${bb}["amenity"~"^(restaurant|cafe|bakery|ice_cream|pub|marketplace|library|arts_centre|fountain)$"]["name"];
+      node${bb}["amenity"="fountain"];
+      nwr${bb}["shop"~"^(bakery|books)$"]["name"];
+      nwr${bb}["leisure"~"^(park|garden|nature_reserve|playground|skatepark)$"];
+      nwr${bb}["historic"]["name"];
+      nwr${bb}["tourism"~"^(museum|viewpoint|attraction|artwork|gallery)$"];
+      nwr${bb}["natural"="water"]["name"];
+    );out center 1500;`;
     try {
       const res = await fetch(OVERPASS, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -354,70 +341,148 @@
         known[id] = { name: t.name || fallbackName(cat, t), cat, lat: la, lng: ln };
         added++;
       }
-      lastFetch = pos.slice();
-      placeMarkers();
-      checkDiscoveries();
-      if (force) toast(added ? `Found ${added} new spots nearby` : 'No new spots nearby');
-    } catch (e) {
+      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) fetchedTiles.add(keyOf(ti + di, tj + dj));
+      nextFetchOK = Date.now() + 3000;
+      drawUnknown();
+      if (force) toast(added ? `Found ${added} new spots around here` : 'No new spots around here');
+    } catch (err) {
+      nextFetchOK = Date.now() + 20000;
       if (force) toast('Could not reach OpenStreetMap. Try again in a bit.');
-      setTimeout(() => { fetching = false; }, 15000); // back off
-      return;
     }
     fetching = false;
   }
   function checkDiscoveries() {
-    if (!pos || !state.active) return;
-    const c = comp();
-    const loves = lovesOf(c);
+    const p = partner(); if (!pos || !p) return;
+    const loves = lovesOf(p);
     for (const id in known) {
-      const p = known[id];
-      if (haversine(pos, [p.lat, p.lng]) > DISCOVER_RADIUS) continue;
+      const k = known[id];
+      if (Math.abs(k.lat - pos[0]) > 0.001) continue;
+      if (haversine(pos, [k.lat, k.lng]) > DISCOVER_RADIUS) continue;
       delete known[id];
-      const isLove = p.cat === loves;
-      const lines = linesOf(c);
-      const quote = pick(isLove ? lines.love : lines.like).replace('{p}', p.name);
-      state.places[id] = Object.assign(p, { at: Date.now(), by: c.nick, quote });
+      const isLove = k.cat === loves;
+      const quote = fill(pick(isLove ? LINES[k.cat].love : LIKE_LINES), k.name);
+      state.places[id] = Object.assign(k, { at: Date.now(), by: nameOf(p), quote });
       say(quote, true);
-      toast(`${CATS[p.cat].icon} Discovered ${p.name}`);
-      if (isLove) hop();
-      addXP(isLove ? 120 : 50);
-      if (navigator.vibrate) navigator.vibrate(isLove ? [60, 40, 60] : 40);
-      placeMarkers();
-      save();
-      break; // one discovery per fix keeps the bubble readable
+      toast(`${CATS[k.cat].icon} Discovered ${k.name}`);
+      if (isLove) { hop(); cry(); }
+      addXP(isLove ? 150 : 50);
+      if (navigator.vibrate) navigator.vibrate(isLove ? [60, 40, 60] : 30);
+      drawPlaces(); drawUnknown(); save();
+      return;
     }
   }
 
   // ---------------------------------------------------------------------------
-  // Movement
+  // Movement: joystick, keyboard, tap-to-go
   // ---------------------------------------------------------------------------
-  let lastNewBlockLine = 0;
-  function onPosition(lat, lng, accuracy) {
-    pos = [lat, lng];
-    state.lastPos = pos;
-    if (!meMarker) {
-      meMarker = L.marker(pos, { icon: meIcon(), zIndexOffset: 1000, interactive: false }).addTo(map);
-      map.setView(pos, Math.max(map.getZoom(), 17), { animate: false });
-    } else meMarker.setLatLng(pos);
-    if (followMe) map.panTo(pos, { animate: true });
+  const stickIn = { x: 0, y: 0, active: false };   // y > 0 = north
+  const keys = new Set();
+  let runToggle = false;
+  let target = null, targetMarker = null;
 
-    const note = $('gpsNote');
-    if (!state.demo && accuracy > MAX_ACCURACY) {
-      note.textContent = `Weak GPS (±${Math.round(accuracy)} m). Step outside for better tracking.`;
-      note.classList.add('show');
-      return;
+  // Joystick
+  const stick = $('stick'), knob = $('knob');
+  let stickId = null;
+  function stickMove(e) {
+    const r = stick.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width / 2 - 14;
+    let dx = e.clientX - cx, dy = e.clientY - cy;
+    const d = Math.hypot(dx, dy);
+    if (d > max) { dx *= max / d; dy *= max / d; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    stickIn.x = dx / max; stickIn.y = -dy / max;
+  }
+  stick.addEventListener('pointerdown', (e) => {
+    stickId = e.pointerId; stick.setPointerCapture(e.pointerId);
+    stick.classList.add('active'); stickIn.active = true; clearTarget(); stickMove(e);
+  });
+  stick.addEventListener('pointermove', (e) => { if (e.pointerId === stickId) stickMove(e); });
+  const stickEnd = (e) => {
+    if (e.pointerId !== stickId) return;
+    stickId = null; stick.classList.remove('active');
+    stickIn.active = false; stickIn.x = stickIn.y = 0; knob.style.transform = '';
+  };
+  stick.addEventListener('pointerup', stickEnd);
+  stick.addEventListener('pointercancel', stickEnd);
+
+  // Keyboard
+  const KEYMAP = { ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd', ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r' };
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (KEYMAP[e.code]) { keys.add(KEYMAP[e.code]); clearTarget(); e.preventDefault(); }
+    if (e.key === 'Shift') keys.add('run');
+  });
+  window.addEventListener('keyup', (e) => {
+    if (KEYMAP[e.code]) keys.delete(KEYMAP[e.code]);
+    if (e.key === 'Shift') keys.delete('run');
+  });
+  window.addEventListener('blur', () => keys.clear());
+
+  $('btnRun').onclick = () => { runToggle = !runToggle; $('btnRun').classList.toggle('on', runToggle); };
+
+  // Tap the map to walk there
+  map.on('click', (e) => {
+    if (!started || !pos) return;
+    target = [e.latlng.lat, e.latlng.lng];
+    if (!targetMarker) targetMarker = L.marker(target, { icon: L.divIcon({ className: '', html: '<div class="target-dot"></div>', iconSize: [20, 20], iconAnchor: [10, 10] }), interactive: false, keyboard: false }).addTo(map);
+    else targetMarker.setLatLng(target).addTo(map);
+    followMe = true; $('btnCenter').classList.add('on');
+  });
+  function clearTarget() { target = null; if (targetMarker) targetMarker.remove(); }
+
+  let lastFrame = 0, lastLogic = 0, moving = false;
+  function frame(t) {
+    requestAnimationFrame(frame);
+    const dt = Math.min(0.1, (t - (lastFrame || t)) / 1000); lastFrame = t;
+    if (!started || !pos) return;
+
+    let vx = stickIn.x, vy = stickIn.y;
+    if (!stickIn.active) {
+      vx = (keys.has('r') ? 1 : 0) - (keys.has('l') ? 1 : 0);
+      vy = (keys.has('u') ? 1 : 0) - (keys.has('d') ? 1 : 0);
+      const m = Math.hypot(vx, vy); if (m > 1) { vx /= m; vy /= m; }
     }
-    note.classList.remove('show');
+    let mag = Math.hypot(vx, vy);
+    let speed = (runToggle || keys.has('run')) ? RUN_SPEED : WALK_SPEED;
 
-    // Distance (skip teleports such as GPS jumps or demo taps across town)
+    if (mag < 0.15 && target) {
+      const dN = (target[0] - pos[0]) * 111320;
+      const dE = (target[1] - pos[1]) * 111320 * Math.cos(pos[0] * Math.PI / 180);
+      const dist = Math.hypot(dN, dE);
+      if (dist > 600) speed = RUN_SPEED;
+      if (dist < speed * dt) { pos = target.slice(); clearTarget(); vx = vy = 0; mag = 0; step(0, 0); }
+      else { vx = dE / dist; vy = dN / dist; mag = 1; }
+    } else if (mag < 0.15) mag = 0;
+
+    if (mag > 0) {
+      const v = speed * Math.min(1, mag) * dt / mag;
+      step(vy * v, vx * v);
+      // Face the way we're going
+      if (Math.abs(vy) > Math.abs(vx) * 0.6) setFacing(vy > 0, vx > 0.2);
+      else setFacing(false, vx > 0);
+      moving = true;
+    } else if (moving) { moving = false; setFacing(false, facing.flip); }
+
+    if (t - lastLogic > 100 && moving) { lastLogic = t; onMoved(); }
+  }
+  function step(north, east) {
+    pos[0] += north / 111320;
+    pos[1] += east / (111320 * Math.cos(pos[0] * Math.PI / 180));
+    meMarker.setLatLng(pos);
+    if (followMe) map.setView(pos, map.getZoom(), { animate: false });
+  }
+  requestAnimationFrame(frame);
+
+  // Game logic, run ~10x/second while moving and after any jump.
+  let lastNewBlockLine = 0, lastUnknownDraw = 0;
+  function onMoved() {
     if (lastCountedPos) {
       const d = haversine(lastCountedPos, pos);
-      if (d >= 5 && d < 250) { state.meters += d; addXP(Math.round(d / 10)); lastCountedPos = pos; }
-      else if (d >= 250) lastCountedPos = pos;
-    } else lastCountedPos = pos;
+      if (d < 300) { state.meters += d; addXP(d / 40); }
+    }
+    lastCountedPos = pos.slice();
 
-    // Reveal a 3x3 block of cells around you
-    const [ci, cj] = cellOf(lat, lng);
+    const ci = Math.floor(pos[0] / DLAT), cj = Math.floor(pos[1] / DLNG);
     const fresh = [];
     for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
       const k = keyOf(ci + di, cj + dj);
@@ -425,81 +490,40 @@
     }
     if (fresh.length) {
       refreshFog(fresh);
-      addXP(fresh.length * 4);
-      if (Date.now() - lastNewBlockLine > 45000 && fresh.length >= 3) { say(pick(NEW_BLOCK_LINES)); lastNewBlockLine = Date.now(); }
+      addXP(fresh.length * 2);
+      if (Date.now() - lastNewBlockLine > 40000 && fresh.length >= 3 && Date.now() - lastSpoke > 8000) { say(pick(NEW_BLOCK_LINES)); lastNewBlockLine = Date.now(); }
     }
     checkDiscoveries();
-    fetchPlaces(false);
+    maybeFetchPlaces(false);
+    if (Date.now() - lastUnknownDraw > 700) { drawUnknown(); lastUnknownDraw = Date.now(); }
     renderHUD();
     save();
   }
-
-  function startGPS() {
-    if (geoWatch != null || state.demo) return;
-    if (!('geolocation' in navigator)) { enableDemo('This browser has no GPS. Tap the map to walk.'); return; }
-    geoWatch = navigator.geolocation.watchPosition(
-      (p) => onPosition(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
-      (err) => {
-        if (err.code === 1) enableDemo('Location is blocked, so tap the map to walk. You can allow it in your browser settings.');
-        else { $('gpsNote').textContent = 'Looking for GPS…'; $('gpsNote').classList.add('show'); }
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
-    );
-    requestWakeLock();
+  function jumpTo(lat, lng, label) {
+    clearTarget();
+    pos = [lat, lng]; lastCountedPos = null;
+    if (meMarker) meMarker.setLatLng(pos);
+    followMe = true; $('btnCenter').classList.add('on');
+    map.setView(pos, 17, { animate: false });
+    if (started) { onMoved(); if (label) say(`${label}! Let's look around.`, true); }
   }
-  function stopGPS() { if (geoWatch != null) navigator.geolocation.clearWatch(geoWatch); geoWatch = null; }
-
-  // Demo walking: tap the map and the buddy walks there in steps.
-  let walkTimer = null;
-  map.on('click', (e) => {
-    if (!state.demo || !state.active) return;
-    clearInterval(walkTimer);
-    const from = pos || [e.latlng.lat, e.latlng.lng];
-    const to = [e.latlng.lat, e.latlng.lng];
-    const dist = haversine(from, to);
-    if (!pos || dist > 3000) { onPosition(to[0], to[1], 5); return; }
-    const steps = Math.max(1, Math.round(dist / 12));
-    let n = 0; followMe = true;
-    walkTimer = setInterval(() => {
-      n++;
-      const f = n / steps;
-      onPosition(from[0] + (to[0] - from[0]) * f, from[1] + (to[1] - from[1]) * f, 5);
-      if (n >= steps) clearInterval(walkTimer);
-    }, 60);
-  });
-  function enableDemo(msg) {
-    state.demo = true; stopGPS(); renderMenu(); save();
-    if (msg) say(msg, true);
-  }
-
-  let wakeLock = null;
-  async function requestWakeLock() {
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* not granted; fine */ }
-  }
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && geoWatch != null) requestWakeLock();
-    if (document.visibilityState === 'hidden') save(true);
-  });
 
   // ---------------------------------------------------------------------------
   // UI
   // ---------------------------------------------------------------------------
+  let lastSpoke = 0;
   function say(text, important) {
     const b = $('bubble');
     b.textContent = text;
     b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
     if (important) lastSpoke = Date.now();
   }
-  let lastSpoke = 0;
   setInterval(() => {
-    if (!state.active || Date.now() - lastSpoke < 60000) return;
-    say(pick(linesOf(comp()).idle)); lastSpoke = Date.now();
-  }, 20000);
+    const p = partner();
+    if (!started || !p || Date.now() - lastSpoke < 45000) return;
+    say(fill(pick(LINES[lovesOf(p)].idle.concat(IDLE_LINES)))); lastSpoke = Date.now();
+  }, 15000);
 
-  function hop() {
-    const el = meMarker && meMarker.getElement(); if (!el) return;
-    el.classList.remove('hop'); void el.offsetWidth; el.classList.add('hop');
-  }
   let toastTimer;
   function toast(msg) {
     const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -507,171 +531,228 @@
   }
 
   function renderHUD() {
-    const c = comp(); if (!c) return;
-    const lv = levelFor(c.xp), lo = xpForLevel(lv), hi = xpForLevel(lv + 1);
-    $('hudName').textContent = `${c.nick}` + (c.custom ? '' : ` · ${baseOf(c).type}`);
-    $('hudLvl').textContent = `Bond ${lv}`;
-    $('xpFill').style.width = Math.round(((c.xp - lo) / (hi - lo)) * 100) + '%';
+    const p = partner(); if (!p) return;
+    const lv = levelFor(p.xp), lo = xpForLevel(lv), hi = xpForLevel(lv + 1);
+    $('hudName').textContent = nameOf(p) + (p.nick && p.nick !== p.species ? ` (${p.species})` : '') + (p.shiny ? ' ✨' : '');
+    $('hudLvl').textContent = `Friend ${lv}`;
+    $('xpFill').style.width = Math.round(((p.xp - lo) / (hi - lo)) * 100) + '%';
     $('stCells').textContent = explored.size.toLocaleString();
     $('stKm').textContent = (state.meters / 1000).toFixed(1);
     $('stPlaces').textContent = Object.keys(state.places).length;
     $('stBond').textContent = '♥'.repeat(Math.min(5, Math.ceil(lv / 2))) || '♡';
   }
-  function renderBuddy() {
-    $('buddyPic').innerHTML = companionArt(comp());
-    if (meMarker) meMarker.setIcon(meIcon());
+  function renderPartner() {
+    const p = partner();
+    $('avatar').innerHTML = `<img src="${sprite.art(p.id, p.shiny)}" alt="">`;
+    buildMarker();
+    drawPlaces();
+    renderHUD();
   }
-  function renderMenu() { $('demoState').textContent = state.demo ? 'on' : 'off'; }
 
   function renderJournal() {
     const list = Object.entries(state.places).sort((a, b) => b[1].at - a[1].at);
     const byCat = {};
     list.forEach(([, p]) => { byCat[p.cat] = (byCat[p.cat] || 0) + 1; });
-    $('journalSub').textContent = list.length
-      ? Object.entries(byCat).map(([k, n]) => `${CATS[k].icon} ${n}`).join('   ')
-      : '';
-    $('journalList').innerHTML = list.length ? list.map(([, p]) => `
-      <div class="entry"><div class="ico">${CATS[p.cat].icon}</div><div>
+    $('journalSub').textContent = list.length ? Object.entries(byCat).map(([k, n]) => `${CATS[k].icon} ${n}`).join('   ') : '';
+    $('journalList').innerHTML = list.length ? list.map(([id, p]) => `
+      <div class="entry" data-id="${id}"><div class="ico">${CATS[p.cat].icon}</div><div>
         <div class="t">${esc(p.name)}</div>
         <div class="q">“${esc(p.quote)}” ${p.by ? '— ' + esc(p.by) : ''}</div>
         <div class="d">${new Date(p.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
       </div></div>`).join('')
-      : '<p class="empty">Nothing yet. Walk toward a <b>?</b> on the map to discover it.</p>';
+      : '<p class="empty">Nothing yet. Head toward a <b>?</b> on the map to discover it.</p>';
   }
+  $('journalList').addEventListener('click', (e) => {
+    const en = e.target.closest('.entry'); if (!en) return;
+    const p = state.places[en.dataset.id];
+    $('journalBg').classList.remove('open');
+    followMe = false; $('btnCenter').classList.remove('on');
+    map.setView([p.lat, p.lng], 18);
+  });
 
   function openSheet(id) { $(id).classList.add('open'); }
   document.querySelectorAll('.sheet-bg').forEach((bg) => {
     bg.addEventListener('click', (e) => { if (e.target === bg || e.target.hasAttribute('data-close')) bg.classList.remove('open'); });
   });
 
-  $('btnCenter').onclick = () => { followMe = true; $('btnCenter').classList.add('on'); if (pos) map.setView(pos, Math.max(map.getZoom(), 17)); };
+  $('btnCenter').onclick = () => { followMe = true; $('btnCenter').classList.add('on'); if (pos) map.setView(pos, Math.max(map.getZoom(), 16)); };
   $('btnJournal').onclick = () => { renderJournal(); openSheet('journalBg'); };
-  $('btnMenu').onclick = () => { renderMenu(); openSheet('menuBg'); };
-  $('buddyPic').onclick = () => { say(pick(PET_LINES)); hop(); };
+  $('btnMenu').onclick = () => openSheet('menuBg');
+  $('avatar').onclick = () => { say(fill(pick(PET_LINES))); hop(); cry(); };
   $('mSwap').onclick = () => { $('menuBg').classList.remove('open'); openOnboard(); };
-  $('mDemo').onclick = () => {
-    state.demo = !state.demo; renderMenu(); save();
-    if (state.demo) { stopGPS(); toast('Tap the map to walk'); } else { startGPS(); toast('Using real GPS'); }
+  $('mRefresh').onclick = () => { $('menuBg').classList.remove('open'); nextFetchOK = 0; maybeFetchPlaces(true); };
+  $('mHere').onclick = () => {
+    locateMe((lat, lng) => { $('menuBg').classList.remove('open'); jumpTo(lat, lng, 'Home turf'); });
   };
-  $('mRefresh').onclick = () => { $('menuBg').classList.remove('open'); fetchPlaces(true); };
   $('mReset').onclick = () => {
-    if (!confirm('Erase your whole explored map, journal and companions?')) return;
-    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    if (!confirm('Erase your whole explored map, journal and partners?')) return;
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
     location.reload();
   };
 
-  // ---------------------------------------------------------------------------
-  // Onboarding
-  // ---------------------------------------------------------------------------
-  let selected = null;      // creature id, or 'custom'
-  let customImg = null;
-  function openOnboard() {
-    selected = null; customImg = null;
-    const picker = $('picker');
-    picker.innerHTML = CREATURES.map((c) => `
-      <button class="pick" data-id="${c.id}">${creatureSVG(c)}<span class="n">${c.name}</span><span class="ty">${c.type} · ${CATS[c.loves].icon}</span></button>`).join('')
-      + `<button class="pick upload" data-id="custom"><span class="plus">＋</span><span class="n">Your own</span><span class="ty">upload a picture</span></button>`;
-    $('customType').innerHTML = Object.entries(CATS).map(([k, v]) => `<option value="${k}">${v.icon} ${v.label}</option>`).join('');
-    $('customTypeWrap').hidden = true;
-    $('nick').value = '';
-    $('goBtn').disabled = true;
-    $('pickDetail').innerHTML = '<b>Tap a companion</b><span>Each one has its own favorite kinds of places.</span>';
-    $('cancelPick').hidden = !state.active;
-    $('onboard').classList.add('open');
+  function locateMe(cb) {
+    if (!('geolocation' in navigator)) { toast('This browser can\'t share your location'); return; }
+    toast('Finding you…');
+    navigator.geolocation.getCurrentPosition(
+      (p) => cb(p.coords.latitude, p.coords.longitude),
+      () => toast('Location blocked. Search for a place instead.'),
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+    );
   }
-  $('cancelPick').onclick = () => $('onboard').classList.remove('open');
-  $('picker').addEventListener('click', (e) => {
-    const btn = e.target.closest('.pick'); if (!btn) return;
-    const id = btn.dataset.id;
-    if (id === 'custom') { $('fileIn').click(); return; }
-    selectPick(id);
-  });
-  function selectPick(id) {
-    selected = id;
-    document.querySelectorAll('.pick').forEach((p) => p.classList.toggle('sel', p.dataset.id === id));
-    if (id === 'custom') {
-      $('pickDetail').innerHTML = '<b>Your own buddy</b><span>Pick what it gets most excited about, then give it a name.</span>';
-      $('customTypeWrap').hidden = false;
-    } else {
-      const c = CREATURES.find((x) => x.id === id);
-      const prior = state.companions[id];
-      $('pickDetail').innerHTML = `<b>${c.name} · ${c.type} type</b><span>${c.blurb} Loves: ${CATS[c.loves].icon} ${CATS[c.loves].label}.${prior ? ` You've walked together before (bond ${levelFor(prior.xp)}).` : ''}</span>`;
-      $('customTypeWrap').hidden = true;
-      $('nick').value = prior ? prior.nick : c.name;
-    }
-    $('goBtn').disabled = false;
-  }
-  $('fileIn').addEventListener('change', async (e) => {
-    const f = e.target.files[0]; if (!f) return;
-    try {
-      customImg = await shrinkImage(f, 160);
-      const up = document.querySelector('.pick.upload');
-      up.innerHTML = `<img src="${customImg}" alt=""><span class="n">Your own</span><span class="ty">tap to change</span>`;
-      selectPick('custom');
-      $('nick').focus();
-    } catch (err) { toast('Could not read that image'); }
-    e.target.value = '';
-  });
-  function shrinkImage(file, size) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas'); c.width = c.height = size;
-        const ctx = c.getContext('2d');
-        const s = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
-        URL.revokeObjectURL(img.src);
-        resolve(c.toDataURL('image/png'));
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
+
+  // Place search (Nominatim)
+  function wirePlaceSearch(inputId, resultsId, onPick) {
+    let timer = null, seq = 0;
+    $(inputId).addEventListener('input', () => {
+      clearTimeout(timer);
+      const q = $(inputId).value.trim();
+      if (q.length < 3) { $(resultsId).innerHTML = ''; return; }
+      timer = setTimeout(async () => {
+        const my = ++seq;
+        try {
+          const res = await fetch(`${NOMINATIM}?format=json&limit=5&q=${encodeURIComponent(q)}`, { headers: { 'Accept-Language': navigator.language || 'en' } });
+          const list = await res.json();
+          if (my !== seq) return;
+          $(resultsId).innerHTML = list.length
+            ? list.map((r, i) => `<button data-i="${i}">${esc(r.display_name)}</button>`).join('')
+            : '<button disabled>No matches</button>';
+          $(resultsId).onclick = (e) => {
+            const b = e.target.closest('button[data-i]'); if (!b) return;
+            const r = list[+b.dataset.i];
+            $(resultsId).innerHTML = ''; $(inputId).value = '';
+            onPick(+r.lat, +r.lon, r.display_name.split(',')[0]);
+          };
+        } catch (err) { $(resultsId).innerHTML = '<button disabled>Search unavailable right now</button>'; }
+      }, 450);
     });
   }
-  $('goBtn').onclick = () => {
-    if (!selected) return;
-    const nick = $('nick').value.trim();
-    let key;
-    if (selected === 'custom') {
-      if (!customImg) return;
-      key = 'custom-' + Date.now();
-      state.companions[key] = { base: null, nick: nick || 'Buddy', xp: 0, custom: { img: customImg, loves: $('customType').value } };
-    } else {
-      key = selected;
-      const prior = state.companions[key];
-      state.companions[key] = prior ? Object.assign(prior, { nick: nick || prior.nick }) : { base: selected, nick: nick || CREATURES.find((c) => c.id === selected).name, xp: 0 };
+  wirePlaceSearch('tpSearch', 'tpResults', (lat, lng, label) => { $('menuBg').classList.remove('open'); jumpTo(lat, lng, label); });
+
+  // ---------------------------------------------------------------------------
+  // Onboarding: pick a Pokémon + a starting place
+  // ---------------------------------------------------------------------------
+  let allPokemon = null;      // [[id, slug], ...]
+  let sel = null;             // { id, species, types }
+  let startPos = null, startLabel = null;
+  const typeCache = {};
+
+  async function loadPokemonList() {
+    if (allPokemon) return allPokemon;
+    try {
+      const cached = JSON.parse(localStorage.getItem('wanderbuddy.dex') || 'null');
+      if (cached && cached.length > 800) return (allPokemon = cached);
+    } catch (e) { /* ignore */ }
+    try {
+      const res = await fetch(`${POKEAPI}/pokemon-species?limit=1025`);
+      const data = await res.json();
+      allPokemon = data.results.map((r) => [+r.url.match(/\/(\d+)\/?$/)[1], r.name]);
+      try { localStorage.setItem('wanderbuddy.dex', JSON.stringify(allPokemon)); } catch (e) { /* ignore */ }
+    } catch (e) { allPokemon = null; }
+    return allPokemon;
+  }
+  function renderPicker(list) {
+    $('picker').innerHTML = list.slice(0, 60).map(([id, name]) =>
+      `<button class="pick${sel && sel.id === id ? ' sel' : ''}" data-id="${id}" data-name="${esc(name)}"><img class="px" src="${sprite.thumb(id)}" alt="" loading="lazy"><span class="n">${esc(name)}</span></button>`).join('')
+      || '<p class="empty" style="grid-column:1/-1">No Pokémon by that name.</p>';
+  }
+  $('pkSearch').addEventListener('input', async () => {
+    const q = $('pkSearch').value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!q) { renderPicker(FEATURED); return; }
+    const all = await loadPokemonList();
+    if (!all) { renderPicker(FEATURED.filter(([, n]) => n.toLowerCase().includes(q))); return; }
+    const num = /^\d+$/.test(q) ? +q : null;
+    const hits = all.filter(([id, slug]) => (num ? id === num : slug.includes(q)))
+      .sort((a, b) => (a[1].startsWith(q) ? 0 : 1) - (b[1].startsWith(q) ? 0 : 1) || a[0] - b[0]);
+    renderPicker(hits.map(([id, slug]) => [id, pretty(slug)]));
+  });
+  $('picker').addEventListener('click', async (e) => {
+    const b = e.target.closest('.pick'); if (!b) return;
+    const id = +b.dataset.id, species = b.dataset.name;
+    sel = { id, species, types: typeCache[id] || null };
+    document.querySelectorAll('.pick').forEach((p) => p.classList.toggle('sel', +p.dataset.id === id));
+    const prior = state.partners['pk' + id];
+    $('nick').value = prior && prior.nick ? prior.nick : '';
+    $('shiny').checked = prior ? !!prior.shiny : $('shiny').checked;
+    renderDetail(prior);
+    if (!sel.types) {
+      try {
+        const res = await fetch(`${POKEAPI}/pokemon/${id}`);
+        const d = await res.json();
+        typeCache[id] = d.types.sort((x, y) => x.slot - y.slot).map((t) => t.type.name);
+      } catch (err) { typeCache[id] = ['normal']; }
+      if (sel && sel.id === id) { sel.types = typeCache[id]; renderDetail(prior); }
     }
+    updateGo();
+  });
+  $('shiny').addEventListener('change', () => sel && renderDetail(state.partners['pk' + sel.id]));
+  function renderDetail(prior) {
+    const t = sel.types;
+    const loves = t ? CATS[TYPE_LOVES[t[0]] || 'food'] : null;
+    $('pickDetail').innerHTML = `<img src="${sprite.art(sel.id, $('shiny').checked)}" alt="">
+      <div><b>${esc(sel.species)} <span style="font-weight:400;color:#8a8fa8">#${sel.id}</span></b>
+      ${t ? t.map((x) => `<span class="chip" style="background:${TYPE_COLOR[x] || '#888'}">${x}</span>`).join('') : '<span>Loading…</span>'}
+      ${loves ? `<br><span>Loves ${loves.icon} ${loves.label.toLowerCase()}.${prior ? ` Friendship ${levelFor(prior.xp)} so far.` : ''}</span>` : ''}</div>`;
+  }
+  $('useHere').onclick = () => locateMe((lat, lng) => setStart(lat, lng, 'Your current location'));
+  wirePlaceSearch('placeSearch', 'placeResults', (lat, lng, label) => setStart(lat, lng, label));
+  function setStart(lat, lng, label) {
+    startPos = [lat, lng]; startLabel = label;
+    $('startLoc').innerHTML = `Starting at <b>${esc(label)}</b>`;
+    map.setView(startPos, 15, { animate: false });
+    updateGo();
+  }
+  function updateGo() { $('goBtn').disabled = !(sel && sel.types && (startPos || pos)); }
+
+  function openOnboard() {
+    sel = null; startPos = null;
+    $('pkSearch').value = ''; $('nick').value = ''; $('shiny').checked = false;
+    renderPicker(FEATURED);
+    $('pickDetail').innerHTML = '<span>Tap a Pokémon to see what it likes.</span>';
+    // Already exploring? Keep your spot unless you want to move.
+    $('startWrap').hidden = !!pos;
+    $('cancelPick').hidden = !state.active;
+    updateGo();
+    $('onboard').classList.add('open');
+    loadPokemonList();
+  }
+  $('cancelPick').onclick = () => $('onboard').classList.remove('open');
+
+  $('goBtn').onclick = () => {
+    if (!sel || !sel.types) return;
+    const key = 'pk' + sel.id;
+    const prior = state.partners[key];
+    const nick = $('nick').value.trim();
+    state.partners[key] = Object.assign(prior || { xp: 0 }, { id: sel.id, species: sel.species, types: sel.types, shiny: $('shiny').checked, nick: nick || '' });
     state.active = key;
-    save(true);
+    if (startPos) { pos = startPos.slice(); lastCountedPos = null; }
     $('onboard').classList.remove('open');
-    if (meMarker) { meMarker.remove(); meMarker = null; }
-    if (!started) startApp(true); else { renderBuddy(); renderHUD(); placeMarkers(); say(`Hi! I'm ${comp().nick}. Where are we going?`, true); if (pos) onPosition(pos[0], pos[1], 5); }
+    save(true);
+    const p = partner();
+    if (!started) startApp();
+    else { renderPartner(); jumpTo(pos[0], pos[1]); }
+    say(`${nameOf(p)}! ${prior ? 'Back together again!' : `Let's go! I love ${CATS[lovesOf(p)].label.toLowerCase()} ${CATS[lovesOf(p)].icon}`}`, true);
+    cry();
   };
 
   // ---------------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------------
-  let started = false;
-  function startApp(fresh) {
+  function startApp() {
     started = true;
-    $('hud').hidden = false; $('buddy').hidden = false;
-    renderBuddy(); renderHUD(); renderMenu(); placeMarkers();
+    $('hud').hidden = false; $('bottom').hidden = false;
     $('btnCenter').classList.add('on');
-    const c = comp();
-    const loves = CATS[lovesOf(c)];
-    say(fresh ? `Hi! I'm ${c.nick}. Let's go explore! I really love ${loves.label.toLowerCase()} ${loves.icon}` : pick(RETURN_LINES), true);
-    if (state.demo) {
-      if (state.lastPos) onPosition(state.lastPos[0], state.lastPos[1], 5);
-      toast('Tap the map to walk');
-    } else startGPS();
+    renderPartner();
+    jumpTo(pos[0], pos[1]);
   }
 
-  if (state.active && state.companions[state.active]) startApp(false);
-  else openOnboard();
+  if (state.active && state.partners[state.active] && pos) {
+    startApp();
+    say(`${nameOf(partner())} is ready. Where to?`, true);
+  } else openOnboard();
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  // Exposed for testing in the console.
-  window.wanderbuddy = { state, explored, known, onPosition, fetchPlaces };
+  window.wanderbuddy = { get state() { return state; }, explored, known, get pos() { return pos; } };
 })();

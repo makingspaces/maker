@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Wanderbuddy</title>
-<meta name="description" content="Pick a companion creature and explore your city together. Walk to clear the fog.">
+<meta name="description" content="Pick a Pokémon and explore your city together.">
 <meta name="theme-color" content="#1b1f33">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -21,9 +21,8 @@
     --paper: #fffaf2;
     --card: #ffffff;
     --line: #e8e1d4;
-    --accent: #ff7a45;
+    --accent: #ff5a3c;
     --accent-2: #2bb3a3;
-    --fog: 27, 31, 51;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
   }
@@ -31,15 +30,16 @@
   html, body { height: 100%; overflow: hidden; }
   body {
     font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
-    background: var(--ink);
-    color: var(--ink);
-    overscroll-behavior: none;
+    background: var(--ink); color: var(--ink);
+    overscroll-behavior: none; -webkit-user-select: none; user-select: none;
   }
+  input, select { -webkit-user-select: text; user-select: text; }
   button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+  img.px { image-rendering: pixelated; }
 
   #map { position: fixed; inset: 0; background: #d9d4c7; }
-  .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.7) !important; }
-  .leaflet-top.leaflet-right { top: calc(128px + var(--safe-top)); }
+  .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.7) !important; max-width: 70vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .leaflet-top.leaflet-right { top: calc(124px + var(--safe-top)); }
 
   /* ---------- HUD ---------- */
   .hud {
@@ -60,48 +60,60 @@
   .stats b { color: var(--ink); font-size: 14px; display: block; font-variant-numeric: tabular-nums; }
   .stats > div { text-align: center; flex: 1; }
 
-  /* ---------- Buddy card ---------- */
-  .buddy {
-    position: fixed; z-index: 500; left: 12px; right: 12px;
-    bottom: calc(12px + var(--safe-bot));
-    display: flex; align-items: flex-end; gap: 10px;
-    pointer-events: none;
-  }
-  .buddy-pic { width: 84px; height: 84px; flex: none; pointer-events: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); }
-  .buddy-pic svg, .buddy-pic img { width: 100%; height: 100%; object-fit: contain; animation: bob 2.4s ease-in-out infinite; }
-  .buddy-pic img { border-radius: 50%; border: 3px solid #fff; background: #fff; }
+  /* ---------- Bottom: speech + controls ---------- */
+  .bottom { position: fixed; z-index: 500; left: 12px; right: 12px; bottom: calc(12px + var(--safe-bot)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .speech { display: flex; align-items: flex-end; gap: 8px; pointer-events: none; }
+  .avatar { width: 56px; height: 56px; flex: none; border-radius: 50%; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.25); pointer-events: auto; overflow: hidden; display: grid; place-items: center; }
+  .avatar img { width: 120%; height: 120%; object-fit: contain; }
   .bubble {
     flex: 1; min-width: 0; background: var(--card); border-radius: 16px 16px 16px 4px;
-    padding: 10px 12px; font-size: 14px; line-height: 1.35;
-    box-shadow: 0 6px 20px rgba(0,0,0,.2); margin-bottom: 18px; pointer-events: auto;
-    min-height: 44px;
+    padding: 10px 12px; font-size: 14px; line-height: 1.35; min-height: 44px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); pointer-events: auto;
   }
   .bubble.pop { animation: pop .35s ease; }
-  .fabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; pointer-events: auto; }
+  .controls { display: flex; align-items: flex-end; justify-content: space-between; }
+  .stick {
+    width: 132px; height: 132px; border-radius: 50%; pointer-events: auto; touch-action: none; position: relative;
+    background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,.3) 70%);
+    border: 2px solid rgba(255,255,255,.8); box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .knob {
+    position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #f1ece3 60%, #d8d1c4 100%);
+    box-shadow: 0 4px 10px rgba(0,0,0,.3); transition: transform .08s;
+  }
+  .stick.active .knob { transition: none; }
+  .right-ctrls { display: flex; gap: 8px; align-items: flex-end; pointer-events: auto; }
+  .fabs { display: flex; flex-direction: column; gap: 8px; }
   .fab {
     width: 46px; height: 46px; border-radius: 50%; background: var(--card);
     box-shadow: 0 4px 14px rgba(0,0,0,.22); font-size: 20px; display: grid; place-items: center;
   }
   .fab.on { background: var(--accent-2); color: #fff; }
+  .run { width: 72px; height: 72px; border-radius: 50%; background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,.25); font-weight: 800; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
+  .run span { font-size: 24px; }
+  .run.on { background: var(--accent); color: #fff; }
 
-  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
   @keyframes pop { 0% { transform: scale(.92); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
-  @keyframes hop { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-14px); } }
+  @keyframes hop { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-16px); } }
 
   /* ---------- Map markers ---------- */
-  .me-marker { width: 56px; height: 56px; }
-  .me-marker .me-inner { width: 100%; height: 100%; animation: bob 1.8s ease-in-out infinite; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+  .me-marker { width: 96px; height: 96px; pointer-events: none; }
+  .me-marker .me-inner { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
   .me-marker.hop .me-inner { animation: hop .5s ease 3; }
-  .me-marker svg, .me-marker img { width: 100%; height: 100%; object-fit: contain; }
-  .me-marker img { border-radius: 50%; border: 3px solid #fff; background: #fff; }
+  .me-marker img { max-width: 96px; max-height: 96px; image-rendering: pixelated; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); transform-origin: 50% 100%; }
+  .me-marker img.flip { transform: scaleX(-1); }
+  .me-shadow { position: absolute; left: 50%; bottom: -4px; width: 40px; height: 10px; margin-left: -20px; border-radius: 50%; background: rgba(0,0,0,.25); }
   .place-marker {
     width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
     font-size: 16px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); border: 2px solid #fff;
   }
   .place-marker.unknown { background: #3b4166; color: #fff; font-weight: 900; font-size: 15px; border-color: #7d84b3; }
   .place-marker.loved { border-color: #ffc145; }
+  .target-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(255,90,60,.3); }
 
-  /* ---------- Sheets & onboarding ---------- */
+  /* ---------- Sheets ---------- */
   .sheet-bg { position: fixed; inset: 0; z-index: 900; background: rgba(15,17,30,.55); display: none; }
   .sheet-bg.open { display: block; }
   .sheet {
@@ -123,43 +135,49 @@
   .row-btn { display: block; width: 100%; text-align: left; padding: 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-bottom: 10px; font-weight: 600; }
   .row-btn small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; margin-top: 2px; }
   .row-btn.danger { color: #c0392b; }
+  .results { margin: -6px 0 12px; }
+  .results button { display: block; width: 100%; text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; background: #fff; }
+  .results button:first-child { border-radius: 12px 12px 0 0; }
+  .results button:last-child { border-radius: 0 0 12px 12px; border-bottom: 0; }
+  .results button:only-child { border-radius: 12px; }
 
+  /* ---------- Onboarding ---------- */
   .onboard { position: fixed; inset: 0; z-index: 1000; background: var(--paper); overflow-y: auto; padding: calc(24px + var(--safe-top)) 16px calc(24px + var(--safe-bot)); display: none; }
   .onboard.open { display: block; }
   .onboard-inner { max-width: 520px; margin: 0 auto; }
-  .onboard h1 { font-size: 30px; line-height: 1.1; margin-bottom: 6px; }
-  .onboard p.lead { color: var(--ink-2); margin-bottom: 18px; }
-  .picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
-  .pick {
-    background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 8px 4px 10px;
-    display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform .15s;
-  }
-  .pick svg, .pick img { width: 64px; height: 64px; object-fit: contain; }
-  .pick img { border-radius: 50%; }
-  .pick .n { font-weight: 800; font-size: 14px; }
-  .pick .ty { font-size: 11px; color: var(--ink-2); }
-  .pick.sel { border-color: var(--accent); transform: scale(1.04); box-shadow: 0 4px 14px rgba(255,122,69,.25); }
-  .pick.upload { border-style: dashed; justify-content: center; }
-  .pick.upload .plus { font-size: 30px; width: 64px; height: 64px; display: grid; place-items: center; color: var(--ink-2); }
-  .detail { background: var(--card); border-radius: 16px; padding: 14px; border: 1px solid var(--line); margin-bottom: 16px; min-height: 76px; }
-  .detail b { display: block; margin-bottom: 2px; }
-  .detail span { font-size: 14px; color: var(--ink-2); }
+  .onboard h1 { font-size: 28px; line-height: 1.1; margin-bottom: 6px; }
+  .onboard h3 { font-size: 16px; margin: 18px 0 8px; }
+  .onboard p.lead { color: var(--ink-2); margin-bottom: 14px; }
+  .picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; max-height: 340px; overflow-y: auto; padding: 2px; }
+  .pick { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 4px 2px 6px; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .pick img { width: 64px; height: 64px; }
+  .pick .n { font-weight: 700; font-size: 11px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+  .pick.sel { border-color: var(--accent); box-shadow: 0 4px 14px rgba(255,90,60,.25); }
+  .detail { background: var(--card); border-radius: 16px; padding: 12px; border: 1px solid var(--line); margin-bottom: 14px; display: flex; gap: 12px; align-items: center; min-height: 96px; }
+  .detail img { width: 80px; height: 80px; object-fit: contain; flex: none; }
+  .detail b { display: block; font-size: 17px; }
+  .detail span { font-size: 13px; color: var(--ink-2); }
+  .chip { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; padding: 2px 8px; border-radius: 99px; margin: 2px 4px 2px 0; text-transform: capitalize; }
   label.lbl { font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px; }
-  .field { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; margin-bottom: 14px; }
+  .field { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; margin-bottom: 12px; }
   .field:focus { outline: none; border-color: var(--accent); }
-  select.field { appearance: none; -webkit-appearance: none; }
-  .go { width: 100%; padding: 16px; border-radius: 16px; background: var(--accent); color: #fff; font-weight: 800; font-size: 18px; box-shadow: 0 6px 18px rgba(255,122,69,.35); }
-  .go:disabled { opacity: .5; }
+  .inline { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 14px; }
+  .inline input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .start-loc { font-size: 14px; color: var(--ink-2); margin-bottom: 10px; }
+  .start-loc b { color: var(--ink); }
+  .go { width: 100%; padding: 16px; border-radius: 16px; background: var(--accent); color: #fff; font-weight: 800; font-size: 18px; box-shadow: 0 6px 18px rgba(255,90,60,.35); margin-top: 6px; }
+  .go:disabled { opacity: .45; }
+  .ghost { width: 100%; padding: 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-weight: 700; margin-bottom: 10px; }
   .fine { font-size: 12px; color: #8a8fa8; margin-top: 14px; text-align: center; line-height: 1.5; }
 
   .toast {
-    position: fixed; z-index: 950; left: 50%; top: calc(130px + var(--safe-top)); transform: translateX(-50%) translateY(-20px);
+    position: fixed; z-index: 950; left: 50%; top: calc(150px + var(--safe-top)); transform: translateX(-50%) translateY(-20px);
     background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 14px;
     opacity: 0; transition: all .3s ease; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .gps-note { position: fixed; z-index: 600; left: 50%; transform: translateX(-50%); top: calc(132px + var(--safe-top)); background: #fff3cd; color: #6b5300; font-size: 12px; padding: 6px 12px; border-radius: 999px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; }
-  .gps-note.show { display: block; }
+  .keys-hint { display: none; }
+  @media (hover: hover) and (pointer: fine) { .keys-hint { display: block; } }
 </style>
 </head>
 <body>
@@ -173,42 +191,55 @@
     <div class="xpbar"><div id="xpFill"></div></div>
     <div class="stats">
       <div><b id="stCells">0</b>blocks</div>
-      <div><b id="stKm">0.0</b>km walked</div>
+      <div><b id="stKm">0.0</b>km</div>
       <div><b id="stPlaces">0</b>places</div>
-      <div><b id="stBond">♡</b>bond</div>
+      <div><b id="stBond">♡</b>friendship</div>
     </div>
   </div>
-  <div class="gps-note" id="gpsNote"></div>
 
-  <div class="buddy" id="buddy" hidden>
-    <button class="buddy-pic" id="buddyPic" aria-label="Pet your companion"></button>
-    <div class="bubble" id="bubble">…</div>
-    <div class="fabs">
-      <button class="fab" id="btnCenter" aria-label="Center on me">◎</button>
-      <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
-      <button class="fab" id="btnMenu" aria-label="Settings">⚙︎</button>
+  <div class="bottom" id="bottom" hidden>
+    <div class="speech">
+      <button class="avatar" id="avatar" aria-label="Pet your Pokémon"></button>
+      <div class="bubble" id="bubble">…</div>
+    </div>
+    <div class="controls">
+      <div class="stick" id="stick" aria-label="Joystick"><div class="knob" id="knob"></div></div>
+      <div class="right-ctrls">
+        <button class="run" id="btnRun" aria-label="Run"><span>👟</span>Run</button>
+        <div class="fabs">
+          <button class="fab" id="btnCenter" aria-label="Center">◎</button>
+          <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
+          <button class="fab" id="btnMenu" aria-label="Menu">⚙︎</button>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
-  <!-- Onboarding / companion picker -->
+  <!-- Onboarding / Pokémon picker -->
   <div class="onboard" id="onboard">
     <div class="onboard-inner">
-      <h1>Who's walking with you?</h1>
-      <p class="lead">Pick a companion. Walk around your city to clear the fog, find places, and get closer to your buddy.</p>
+      <h1>Choose your partner</h1>
+      <p class="lead">Pick a Pokémon, drop into a city, and explore. Clear the fog, find real places, and grow your friendship.</p>
+      <input class="field" id="pkSearch" placeholder="Search any Pokémon…" autocomplete="off" autocapitalize="off" spellcheck="false">
       <div class="picker" id="picker"></div>
-      <div class="detail" id="pickDetail"><b>Tap a companion</b><span>Each one has its own favorite kinds of places.</span></div>
-      <div id="customTypeWrap" hidden>
-        <label class="lbl" for="customType">What does your buddy love most?</label>
-        <select class="field" id="customType"></select>
+      <div class="detail" id="pickDetail"><span>Tap a Pokémon to see what it likes.</span></div>
+      <label class="inline"><input type="checkbox" id="shiny"> ✨ Shiny</label>
+      <label class="lbl" for="nick">Nickname</label>
+      <input class="field" id="nick" maxlength="20" placeholder="Optional" autocomplete="off">
+
+      <div id="startWrap">
+        <h3>Where do you want to explore?</h3>
+        <p class="start-loc" id="startLoc">No place picked yet.</p>
+        <button class="ghost" id="useHere">📍 Start where I am</button>
+        <input class="field" id="placeSearch" placeholder="…or search a city or address" autocomplete="off">
+        <div class="results" id="placeResults"></div>
       </div>
-      <label class="lbl" for="nick">Name your buddy</label>
-      <input class="field" id="nick" maxlength="20" placeholder="e.g. Biscuit" autocomplete="off">
-      <button class="go" id="goBtn" disabled>Start exploring</button>
-      <button class="row-btn" id="cancelPick" style="text-align:center;margin-top:10px" hidden>Cancel</button>
-      <p class="fine">Your location stays on this phone. Map data © OpenStreetMap contributors.<br>Keep the screen on while walking; browsers pause GPS when the phone is locked.</p>
-      <input type="file" id="fileIn" accept="image/*" hidden>
+
+      <button class="go" id="goBtn" disabled>Let's go!</button>
+      <button class="ghost" id="cancelPick" style="margin-top:10px" hidden>Cancel</button>
+      <p class="fine">Pokémon data &amp; sprites from PokéAPI. Map data © OpenStreetMap contributors.<br>A personal fan project. Pokémon © Nintendo / Game Freak / The Pokémon Company.</p>
     </div>
   </div>
 
@@ -226,12 +257,15 @@
   <div class="sheet-bg" id="menuBg">
     <div class="sheet">
       <button class="sheet-close" data-close>✕</button>
-      <h2>Settings</h2>
-      <p class="sub">Your progress is saved on this device.</p>
-      <button class="row-btn" id="mSwap">Switch companion<small>Your explored map stays. The new buddy starts at bond level 1.</small></button>
-      <button class="row-btn" id="mDemo">Walk by tapping the map: <span id="demoState">off</span><small>For trying it at home. Tap anywhere and your buddy walks there.</small></button>
-      <button class="row-btn" id="mRefresh">Look for places nearby<small>Pulls fresh points of interest from OpenStreetMap.</small></button>
-      <button class="row-btn danger" id="mReset">Reset everything<small>Wipes the fog map, journal and companions.</small></button>
+      <h2>Menu</h2>
+      <p class="sub keys-hint">Keyboard: arrow keys or WASD to move, hold Shift to run.</p>
+      <label class="lbl" for="tpSearch">Travel somewhere</label>
+      <input class="field" id="tpSearch" placeholder="City, neighborhood, address…" autocomplete="off">
+      <div class="results" id="tpResults"></div>
+      <button class="row-btn" id="mHere">📍 Jump to my real location</button>
+      <button class="row-btn" id="mSwap">Switch Pokémon<small>Your explored map stays. Each Pokémon keeps its own friendship.</small></button>
+      <button class="row-btn" id="mRefresh">Look for places here again<small>Pulls fresh spots from OpenStreetMap.</small></button>
+      <button class="row-btn danger" id="mReset">Reset everything<small>Wipes the fog map, journal and partners.</small></button>
     </div>
   </div>
 

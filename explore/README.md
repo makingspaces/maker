@@ -1,14 +1,14 @@
 # Wanderbuddy
 
-Pick a companion creature and explore your city with it. Lives at `/explore/` on the site.
+Pick a Pokémon, drop into any city, and explore it from your couch. Lives at `/explore/` on the site.
+Personal fan project: Pokémon data, sprites and cries are loaded at runtime from PokéAPI, not stored in this repo.
 
-- **Fog of war:** the map starts dark. Walking clears ~55 m blocks around you.
-- **Places:** parks, cafés, fountains, landmarks, libraries, murals and playgrounds come from OpenStreetMap (Overpass API). They show as `?` until you get within ~45 m.
-- **Companions:** six original creatures, each excited by a different kind of place, or upload your own picture.
-- **Bond:** distance, new blocks and discoveries level up your companion.
-- **Installable:** open on your phone → Share → *Add to Home Screen* (iOS) or *Install app* (Android).
-- **Private:** everything is stored in the browser (localStorage). Nothing is sent anywhere except the map tile and place lookups.
-
-Limits: browsers pause GPS when the screen is off, so keep it awake while walking (the app requests a wake lock where supported). Use Settings → *Walk by tapping the map* to try it from your couch.
+- **Partner:** search any of the 1,025 Pokémon (by name or number), optional shiny, nickname. Its animated sprite walks the map and turns to face where it's going.
+- **Controls:** on-screen joystick, **Run** toggle, or tap the map to walk there. Keyboard: arrows/WASD, hold Shift to run.
+- **Travel:** start from your real location or search any city/address; jump anywhere from the ⚙︎ menu.
+- **Fog of war:** the map starts dark; moving clears ~55 m blocks.
+- **Places:** parks, cafés, fountains, landmarks, libraries, murals and playgrounds from OpenStreetMap show as `?` until you get within ~40 m.
+- **Friendship:** the Pokémon's primary type decides what it loves (Fire → food, Water/Ice → water, Grass/Bug/Poison → parks, Rock/Ground/Steel/Dark → history, Psychic/Ghost → museums & libraries, Fairy/Flying/Dragon → art & views, Electric/Fighting → play). Loved places give more friendship and a cry.
+- Everything is saved in the browser (localStorage). Installable via *Add to Home Screen*.
 
 No build step. Leaflet 1.9.4 is vendored in `vendor/`.
