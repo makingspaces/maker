@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Wanderbuddy</title>
+<meta name="description" content="Pick a companion creature and explore your city together. Walk to clear the fog.">
+<meta name="theme-color" content="#1b1f33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wanderbuddy">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<style>
+  :root {
+    --ink: #1b1f33;
+    --ink-2: #4a5070;
+    --paper: #fffaf2;
+    --card: #ffffff;
+    --line: #e8e1d4;
+    --accent: #ff7a45;
+    --accent-2: #2bb3a3;
+    --fog: 27, 31, 51;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--ink);
+    color: var(--ink);
+    overscroll-behavior: none;
+  }
+  button { font: inherit; cursor: pointer; border: 0; background: none; color: inherit; }
+
+  #map { position: fixed; inset: 0; background: #d9d4c7; }
+  .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.7) !important; }
+  .leaflet-top.leaflet-right { top: calc(128px + var(--safe-top)); }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    position: fixed; z-index: 500; left: 12px; right: 12px;
+    top: calc(10px + var(--safe-top));
+    background: rgba(255,250,242,.94);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: 18px; padding: 10px 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.18);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .hud-row { display: flex; align-items: center; gap: 10px; }
+  .hud-name { font-weight: 800; font-size: 17px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-lvl { font-weight: 800; font-size: 13px; background: var(--ink); color: #fff; border-radius: 999px; padding: 3px 10px; }
+  .xpbar { height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .xpbar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffc145); border-radius: 99px; transition: width .6s ease; }
+  .stats { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+  .stats b { color: var(--ink); font-size: 14px; display: block; font-variant-numeric: tabular-nums; }
+  .stats > div { text-align: center; flex: 1; }
+
+  /* ---------- Buddy card ---------- */
+  .buddy {
+    position: fixed; z-index: 500; left: 12px; right: 12px;
+    bottom: calc(12px + var(--safe-bot));
+    display: flex; align-items: flex-end; gap: 10px;
+    pointer-events: none;
+  }
+  .buddy-pic { width: 84px; height: 84px; flex: none; pointer-events: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,.3)); }
+  .buddy-pic svg, .buddy-pic img { width: 100%; height: 100%; object-fit: contain; animation: bob 2.4s ease-in-out infinite; }
+  .buddy-pic img { border-radius: 50%; border: 3px solid #fff; background: #fff; }
+  .bubble {
+    flex: 1; min-width: 0; background: var(--card); border-radius: 16px 16px 16px 4px;
+    padding: 10px 12px; font-size: 14px; line-height: 1.35;
+    box-shadow: 0 6px 20px rgba(0,0,0,.2); margin-bottom: 18px; pointer-events: auto;
+    min-height: 44px;
+  }
+  .bubble.pop { animation: pop .35s ease; }
+  .fabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; pointer-events: auto; }
+  .fab {
+    width: 46px; height: 46px; border-radius: 50%; background: var(--card);
+    box-shadow: 0 4px 14px rgba(0,0,0,.22); font-size: 20px; display: grid; place-items: center;
+  }
+  .fab.on { background: var(--accent-2); color: #fff; }
+
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes pop { 0% { transform: scale(.92); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  @keyframes hop { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-14px); } }
+
+  /* ---------- Map markers ---------- */
+  .me-marker { width: 56px; height: 56px; }
+  .me-marker .me-inner { width: 100%; height: 100%; animation: bob 1.8s ease-in-out infinite; filter: drop-shadow(0 3px 3px rgba(0,0,0,.35)); }
+  .me-marker.hop .me-inner { animation: hop .5s ease 3; }
+  .me-marker svg, .me-marker img { width: 100%; height: 100%; object-fit: contain; }
+  .me-marker img { border-radius: 50%; border: 3px solid #fff; background: #fff; }
+  .place-marker {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 16px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); border: 2px solid #fff;
+  }
+  .place-marker.unknown { background: #3b4166; color: #fff; font-weight: 900; font-size: 15px; border-color: #7d84b3; }
+  .place-marker.loved { border-color: #ffc145; }
+
+  /* ---------- Sheets & onboarding ---------- */
+  .sheet-bg { position: fixed; inset: 0; z-index: 900; background: rgba(15,17,30,.55); display: none; }
+  .sheet-bg.open { display: block; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; max-height: 85vh; overflow-y: auto;
+    background: var(--paper); border-radius: 22px 22px 0 0;
+    padding: 18px 16px calc(22px + var(--safe-bot));
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet h2 { font-size: 20px; margin-bottom: 4px; }
+  .sheet .sub { color: var(--ink-2); font-size: 14px; margin-bottom: 14px; }
+  .sheet-close { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; background: var(--line); font-size: 16px; }
+  .entry { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .entry:last-child { border-bottom: 0; }
+  .entry .ico { font-size: 22px; width: 32px; text-align: center; flex: none; }
+  .entry .t { font-weight: 700; }
+  .entry .q { font-size: 13px; color: var(--ink-2); font-style: italic; }
+  .entry .d { font-size: 11px; color: #8a8fa8; }
+  .empty { color: var(--ink-2); text-align: center; padding: 24px 0; font-size: 14px; }
+  .row-btn { display: block; width: 100%; text-align: left; padding: 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); margin-bottom: 10px; font-weight: 600; }
+  .row-btn small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+  .row-btn.danger { color: #c0392b; }
+
+  .onboard { position: fixed; inset: 0; z-index: 1000; background: var(--paper); overflow-y: auto; padding: calc(24px + var(--safe-top)) 16px calc(24px + var(--safe-bot)); display: none; }
+  .onboard.open { display: block; }
+  .onboard-inner { max-width: 520px; margin: 0 auto; }
+  .onboard h1 { font-size: 30px; line-height: 1.1; margin-bottom: 6px; }
+  .onboard p.lead { color: var(--ink-2); margin-bottom: 18px; }
+  .picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .pick {
+    background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 8px 4px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; transition: transform .15s;
+  }
+  .pick svg, .pick img { width: 64px; height: 64px; object-fit: contain; }
+  .pick img { border-radius: 50%; }
+  .pick .n { font-weight: 800; font-size: 14px; }
+  .pick .ty { font-size: 11px; color: var(--ink-2); }
+  .pick.sel { border-color: var(--accent); transform: scale(1.04); box-shadow: 0 4px 14px rgba(255,122,69,.25); }
+  .pick.upload { border-style: dashed; justify-content: center; }
+  .pick.upload .plus { font-size: 30px; width: 64px; height: 64px; display: grid; place-items: center; color: var(--ink-2); }
+  .detail { background: var(--card); border-radius: 16px; padding: 14px; border: 1px solid var(--line); margin-bottom: 16px; min-height: 76px; }
+  .detail b { display: block; margin-bottom: 2px; }
+  .detail span { font-size: 14px; color: var(--ink-2); }
+  label.lbl { font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px; }
+  .field { width: 100%; font: inherit; font-size: 17px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; margin-bottom: 14px; }
+  .field:focus { outline: none; border-color: var(--accent); }
+  select.field { appearance: none; -webkit-appearance: none; }
+  .go { width: 100%; padding: 16px; border-radius: 16px; background: var(--accent); color: #fff; font-weight: 800; font-size: 18px; box-shadow: 0 6px 18px rgba(255,122,69,.35); }
+  .go:disabled { opacity: .5; }
+  .fine { font-size: 12px; color: #8a8fa8; margin-top: 14px; text-align: center; line-height: 1.5; }
+
+  .toast {
+    position: fixed; z-index: 950; left: 50%; top: calc(130px + var(--safe-top)); transform: translateX(-50%) translateY(-20px);
+    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 14px;
+    opacity: 0; transition: all .3s ease; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .gps-note { position: fixed; z-index: 600; left: 50%; transform: translateX(-50%); top: calc(132px + var(--safe-top)); background: #fff3cd; color: #6b5300; font-size: 12px; padding: 6px 12px; border-radius: 999px; display: none; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; }
+  .gps-note.show { display: block; }
+</style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="hud" id="hud" hidden>
+    <div class="hud-row">
+      <div class="hud-name" id="hudName">—</div>
+      <div class="hud-lvl" id="hudLvl">Lv 1</div>
+    </div>
+    <div class="xpbar"><div id="xpFill"></div></div>
+    <div class="stats">
+      <div><b id="stCells">0</b>blocks</div>
+      <div><b id="stKm">0.0</b>km walked</div>
+      <div><b id="stPlaces">0</b>places</div>
+      <div><b id="stBond">♡</b>bond</div>
+    </div>
+  </div>
+  <div class="gps-note" id="gpsNote"></div>
+
+  <div class="buddy" id="buddy" hidden>
+    <button class="buddy-pic" id="buddyPic" aria-label="Pet your companion"></button>
+    <div class="bubble" id="bubble">…</div>
+    <div class="fabs">
+      <button class="fab" id="btnCenter" aria-label="Center on me">◎</button>
+      <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
+      <button class="fab" id="btnMenu" aria-label="Settings">⚙︎</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Onboarding / companion picker -->
+  <div class="onboard" id="onboard">
+    <div class="onboard-inner">
+      <h1>Who's walking with you?</h1>
+      <p class="lead">Pick a companion. Walk around your city to clear the fog, find places, and get closer to your buddy.</p>
+      <div class="picker" id="picker"></div>
+      <div class="detail" id="pickDetail"><b>Tap a companion</b><span>Each one has its own favorite kinds of places.</span></div>
+      <div id="customTypeWrap" hidden>
+        <label class="lbl" for="customType">What does your buddy love most?</label>
+        <select class="field" id="customType"></select>
+      </div>
+      <label class="lbl" for="nick">Name your buddy</label>
+      <input class="field" id="nick" maxlength="20" placeholder="e.g. Biscuit" autocomplete="off">
+      <button class="go" id="goBtn" disabled>Start exploring</button>
+      <button class="row-btn" id="cancelPick" style="text-align:center;margin-top:10px" hidden>Cancel</button>
+      <p class="fine">Your location stays on this phone. Map data © OpenStreetMap contributors.<br>Keep the screen on while walking; browsers pause GPS when the phone is locked.</p>
+      <input type="file" id="fileIn" accept="image/*" hidden>
+    </div>
+  </div>
+
+  <!-- Journal -->
+  <div class="sheet-bg" id="journalBg">
+    <div class="sheet">
+      <button class="sheet-close" data-close>✕</button>
+      <h2>Journal</h2>
+      <p class="sub" id="journalSub"></p>
+      <div id="journalList"></div>
+    </div>
+  </div>
+
+  <!-- Menu -->
+  <div class="sheet-bg" id="menuBg">
+    <div class="sheet">
+      <button class="sheet-close" data-close>✕</button>
+      <h2>Settings</h2>
+      <p class="sub">Your progress is saved on this device.</p>
+      <button class="row-btn" id="mSwap">Switch companion<small>Your explored map stays. The new buddy starts at bond level 1.</small></button>
+      <button class="row-btn" id="mDemo">Walk by tapping the map: <span id="demoState">off</span><small>For trying it at home. Tap anywhere and your buddy walks there.</small></button>
+      <button class="row-btn" id="mRefresh">Look for places nearby<small>Pulls fresh points of interest from OpenStreetMap.</small></button>
+      <button class="row-btn danger" id="mReset">Reset everything<small>Wipes the fog map, journal and companions.</small></button>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
