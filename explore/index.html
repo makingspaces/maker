@@ -39,71 +39,67 @@
 
   #map { position: fixed; inset: 0; background: #d9d4c7; }
   .leaflet-control-attribution { font-size: 10px; background: rgba(255,255,255,.7) !important; max-width: 70vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .leaflet-top.leaflet-right { top: calc(124px + var(--safe-top)); }
+  .leaflet-top.leaflet-right { top: calc(52px + var(--safe-top)); }
+  .leaflet-control-attribution { font-size: 9px !important; opacity: .75; }
 
-  /* ---------- HUD ---------- */
+  /* ---------- HUD: one slim glass pill ---------- */
   .hud {
-    position: fixed; z-index: 500; left: 12px; right: 12px;
-    top: calc(10px + var(--safe-top));
-    background: rgba(255,250,242,.94);
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-    border-radius: 18px; padding: 10px 14px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.18);
-    display: flex; flex-direction: column; gap: 8px;
+    position: fixed; z-index: 500; left: 10px; right: 10px;
+    top: calc(6px + var(--safe-top));
+    background: rgba(20,22,36,.55); color: #fff;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 999px; padding: 7px 14px 9px; overflow: hidden;
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
   }
-  .hud-row { display: flex; align-items: center; gap: 10px; }
-  .hud-name { font-weight: 800; font-size: 17px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hud-lvl { font-weight: 800; font-size: 13px; background: var(--ink); color: #fff; border-radius: 999px; padding: 3px 10px; }
-  .xpbar { height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; }
-  .xpbar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffc145); border-radius: 99px; transition: width .6s ease; }
-  .stats { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
-  .stats b { color: var(--ink); font-size: 14px; display: block; font-variant-numeric: tabular-nums; }
-  .stats > div { text-align: center; flex: 1; }
+  .hud-name { font-weight: 800; font-size: 14px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hud-lvl { font-weight: 800; font-size: 11px; background: rgba(255,255,255,.18); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+  .stats { display: flex; gap: 10px; white-space: nowrap; font-variant-numeric: tabular-nums; opacity: .92; }
+  .stats b { font-weight: 700; }
+  .xpbar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.15); }
+  .xpbar > div { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), #ffc145); transition: width .6s ease; }
 
-  /* ---------- Bottom: speech + controls ---------- */
-  .bottom { position: fixed; z-index: 500; left: 12px; right: 12px; bottom: calc(12px + var(--safe-bot)); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
-  .speech { display: flex; align-items: flex-end; gap: 8px; pointer-events: none; }
-  .avatar { width: 56px; height: 56px; flex: none; border-radius: 50%; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.25); pointer-events: auto; overflow: hidden; display: grid; place-items: center; }
-  .avatar img { width: 120%; height: 120%; object-fit: contain; }
-  .bubble {
-    flex: 1; min-width: 0; background: var(--card); border-radius: 16px 16px 16px 4px;
-    padding: 10px 12px; font-size: 14px; line-height: 1.35; min-height: 44px;
-    box-shadow: 0 6px 20px rgba(0,0,0,.2); pointer-events: auto;
-  }
-  .bubble.pop { animation: pop .35s ease; }
-  .controls { display: flex; align-items: flex-end; justify-content: space-between; }
+  /* ---------- Bottom controls: small, low, out of the way ---------- */
+  .controls { position: fixed; z-index: 500; left: 12px; right: 12px; bottom: calc(10px + var(--safe-bot)); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
   .stick {
-    width: 132px; height: 132px; border-radius: 50%; pointer-events: auto; touch-action: none; position: relative;
-    background: radial-gradient(circle, rgba(255,255,255,.55) 0%, rgba(255,255,255,.3) 70%);
-    border: 2px solid rgba(255,255,255,.8); box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    width: 104px; height: 104px; border-radius: 50%; pointer-events: auto; touch-action: none; position: relative;
+    background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.55);
     backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
   }
   .knob {
-    position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #fff 0%, #f1ece3 60%, #d8d1c4 100%);
-    box-shadow: 0 4px 10px rgba(0,0,0,.3); transition: transform .08s;
+    position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0%, #eee 60%, #cfcfcf 100%);
+    box-shadow: 0 3px 8px rgba(0,0,0,.35); transition: transform .08s;
   }
   .stick.active .knob { transition: none; }
-  .right-ctrls { display: flex; gap: 8px; align-items: flex-end; pointer-events: auto; }
-  .fabs { display: flex; flex-direction: column; gap: 8px; }
+  .btns { display: flex; gap: 8px; pointer-events: auto; }
   .fab {
-    width: 46px; height: 46px; border-radius: 50%; background: var(--card);
-    box-shadow: 0 4px 14px rgba(0,0,0,.22); font-size: 20px; display: grid; place-items: center;
+    width: 42px; height: 42px; border-radius: 50%; font-size: 18px; display: grid; place-items: center; color: #fff;
+    background: rgba(20,22,36,.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   }
-  .fab.on { background: var(--accent-2); color: #fff; }
-  .run { width: 72px; height: 72px; border-radius: 50%; background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,.25); font-weight: 800; font-size: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; }
-  .run span { font-size: 24px; }
-  .run.on { background: var(--accent); color: #fff; }
+  .fab.on { background: var(--accent-2); }
+  .fab.run.on { background: var(--accent); }
 
+  /* ---------- Speech bubble floats over your Pokémon ---------- */
+  .say {
+    position: absolute; left: 50%; bottom: 100%; margin-bottom: 4px; transform: translateX(-50%);
+    width: max-content; max-width: 220px; background: #fff; color: var(--ink);
+    border-radius: 14px; padding: 7px 11px; font-size: 13px; line-height: 1.3; font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,.3); pointer-events: none; text-align: center;
+    opacity: 0; transition: opacity .3s;
+  }
+  .say::after { content: ''; position: absolute; left: 50%; top: 100%; margin-left: -6px; border: 6px solid transparent; border-top-color: #fff; }
+  .say.show { opacity: 1; animation: pop .35s ease; }
   @keyframes pop { 0% { transform: scale(.92); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
   @keyframes hop { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-16px); } }
 
   /* ---------- Map markers ---------- */
-  .me-marker { width: 96px; height: 96px; pointer-events: none; }
-  .me-marker .me-inner { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+  .me-marker { width: 96px; height: 96px; }
+  .me-marker .me-inner { transform-origin: 50% 100%; transition: transform .2s; }
+  .me-marker .me-inner { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; position: relative; }
   .me-marker.hop .me-inner { animation: hop .5s ease 3; }
   .me-marker img { max-width: 96px; max-height: 96px; image-rendering: pixelated; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); transform-origin: 50% 100%; }
   .me-marker img.flip { transform: scaleX(-1); }
+  .me-scale { position: relative; display: flex; align-items: flex-end; justify-content: center; transform-origin: 50% 100%; transition: transform .2s; }
   .me-shadow { position: absolute; left: 50%; bottom: -4px; width: 40px; height: 10px; margin-left: -20px; border-radius: 50%; background: rgba(0,0,0,.25); }
   .place-marker {
     width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
@@ -171,7 +167,7 @@
   .fine { font-size: 12px; color: #8a8fa8; margin-top: 14px; text-align: center; line-height: 1.5; }
 
   .toast {
-    position: fixed; z-index: 950; left: 50%; top: calc(150px + var(--safe-top)); transform: translateX(-50%) translateY(-20px);
+    position: fixed; z-index: 950; left: 50%; top: calc(70px + var(--safe-top)); transform: translateX(-50%) translateY(-20px);
     background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 14px;
     opacity: 0; transition: all .3s ease; pointer-events: none; white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
   }
@@ -184,34 +180,19 @@
   <div id="map"></div>
 
   <div class="hud" id="hud" hidden>
-    <div class="hud-row">
-      <div class="hud-name" id="hudName">—</div>
-      <div class="hud-lvl" id="hudLvl">Lv 1</div>
-    </div>
+    <div class="hud-name" id="hudName">—</div>
+    <div class="hud-lvl" id="hudLvl">Friend 1</div>
+    <div class="stats"><span>🧭 <b id="stCells">0</b></span><span><b id="stKm">0.0</b> km</span><span>📍 <b id="stPlaces">0</b></span></div>
     <div class="xpbar"><div id="xpFill"></div></div>
-    <div class="stats">
-      <div><b id="stCells">0</b>blocks</div>
-      <div><b id="stKm">0.0</b>km</div>
-      <div><b id="stPlaces">0</b>places</div>
-      <div><b id="stBond">♡</b>friendship</div>
-    </div>
   </div>
 
-  <div class="bottom" id="bottom" hidden>
-    <div class="speech">
-      <button class="avatar" id="avatar" aria-label="Pet your Pokémon"></button>
-      <div class="bubble" id="bubble">…</div>
-    </div>
-    <div class="controls">
-      <div class="stick" id="stick" aria-label="Joystick"><div class="knob" id="knob"></div></div>
-      <div class="right-ctrls">
-        <button class="run" id="btnRun" aria-label="Run"><span>👟</span>Run</button>
-        <div class="fabs">
-          <button class="fab" id="btnCenter" aria-label="Center">◎</button>
-          <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
-          <button class="fab" id="btnMenu" aria-label="Menu">⚙︎</button>
-        </div>
-      </div>
+  <div class="controls" id="bottom" hidden>
+    <div class="stick" id="stick" aria-label="Joystick"><div class="knob" id="knob"></div></div>
+    <div class="btns">
+      <button class="fab run" id="btnRun" aria-label="Run">👟</button>
+      <button class="fab" id="btnCenter" aria-label="Center">◎</button>
+      <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
+      <button class="fab" id="btnMenu" aria-label="Menu">☰</button>
     </div>
   </div>
 
@@ -262,6 +243,8 @@
       <label class="lbl" for="tpSearch">Travel somewhere</label>
       <input class="field" id="tpSearch" placeholder="City, neighborhood, address…" autocomplete="off">
       <div class="results" id="tpResults"></div>
+      <button class="row-btn" id="mStyle">Map: <span id="styleName">Satellite</span><small>Switch between satellite and street map.</small></button>
+      <button class="row-btn" id="mInstall" hidden>📲 Make it full screen<small>Open this page in Safari, tap Share, then “Add to Home Screen”. Launch it from the new icon: no browser bars.</small></button>
       <button class="row-btn" id="mHere">📍 Jump to my real location</button>
       <button class="row-btn" id="mSwap">Switch Pokémon<small>Your explored map stays. Each Pokémon keeps its own friendship.</small></button>
       <button class="row-btn" id="mRefresh">Look for places here again<small>Pulls fresh spots from OpenStreetMap.</small></button>

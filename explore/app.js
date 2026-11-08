@@ -26,7 +26,18 @@
   const POKEAPI = 'https://pokeapi.co/api/v2';
   const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
   const CRY = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest';
-  const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';   // free, no key; attribution required
+  // Free, keyless map layers (attribution required).
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services';
+  const LAYERS = {
+    sat: [
+      [`${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`, { maxNativeZoom: 19, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' }],
+      [`${ESRI}/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}`, { maxNativeZoom: 19, opacity: 0.55 }],
+      [`${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`, { maxNativeZoom: 19 }],
+    ],
+    street: [
+      ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' }],
+    ],
+  };
 
   const sprite = {
     thumb: (id) => `${SPR}/${id}.png`,
@@ -166,10 +177,14 @@
   // ---------------------------------------------------------------------------
   const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 19, minZoom: 3, keyboard: false })
     .setView(pos || [40.7128, -74.006], pos ? 17 : 12);
-  L.tileLayer(TILES, {
-    maxZoom: 19,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  let baseLayers = [];
+  function setMapStyle(style) {
+    state.mapStyle = LAYERS[style] ? style : 'sat';
+    baseLayers.forEach((l) => l.remove());
+    baseLayers = LAYERS[state.mapStyle].map(([url, o]) => L.tileLayer(url, Object.assign({ maxZoom: 19, zIndex: 1 }, o)).addTo(map));
+    $('styleName').textContent = state.mapStyle === 'sat' ? 'Satellite' : 'Street map';
+  }
+  setMapStyle(state.mapStyle || 'sat');
   L.control.attribution({ position: 'topright', prefix: false }).addAttribution('<a href="https://leafletjs.com">Leaflet</a>').addTo(map);
   map.on('dragstart', () => { followMe = false; $('btnCenter').classList.remove('on'); });
 
@@ -237,8 +252,9 @@
   function buildMarker() {
     if (meMarker) meMarker.remove();
     const p = partner();
-    const icon = L.divIcon({ className: 'me-marker', html: '<div class="me-inner"><div class="me-shadow"></div><img alt=""></div>', iconSize: [96, 96], iconAnchor: [48, 92] });
-    meMarker = L.marker(pos, { icon, zIndexOffset: 1000, interactive: false, keyboard: false }).addTo(map);
+    const icon = L.divIcon({ className: 'me-marker', html: '<div class="me-inner"><div class="me-scale"><div class="me-shadow"></div><img alt=""></div><div class="say"></div></div>', iconSize: [96, 96], iconAnchor: [48, 92] });
+    meMarker = L.marker(pos, { icon, zIndexOffset: 1000, interactive: true, keyboard: false, bubblingMouseEvents: false }).addTo(map);
+    meMarker.on('click', pet);
     meImg = meMarker.getElement().querySelector('img');
     meImg.onerror = () => {
       // Some Pokémon lack an animated sprite: fall back to the static one.
@@ -246,7 +262,8 @@
       if (meImg.src !== fb) meImg.src = fb;
     };
     // Showdown GIFs are drawn at their native size; scale small ones up a little.
-    meImg.onload = () => { const s = Math.min(2, 80 / Math.max(meImg.naturalWidth, meImg.naturalHeight)); meImg.style.width = Math.round(meImg.naturalWidth * Math.max(1, s)) + 'px'; };
+    meImg.onload = () => { const s = Math.min(2, 80 / Math.max(meImg.naturalWidth, meImg.naturalHeight)); meImg.style.width = Math.round(meImg.naturalWidth * Math.max(1, s)) + 'px'; scaleMarker(); };
+    if (pendingSay) { say(pendingSay[0], pendingSay[1]); pendingSay = null; }
     setFacing(false, false, true);
   }
   function setFacing(back, flip, force) {
@@ -586,12 +603,26 @@
   // UI
   // ---------------------------------------------------------------------------
   let lastSpoke = 0;
+  let pendingSay = null, sayTimer = null;
   function say(text, important) {
-    const b = $('bubble');
+    const b = meMarker && meMarker.getElement() && meMarker.getElement().querySelector('.say');
+    if (!b) { pendingSay = [text, important]; return; }
     b.textContent = text;
-    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => b.classList.remove('show'), Math.max(3500, text.length * 70));
     if (important) lastSpoke = Date.now();
   }
+  // Shrink the sprite when zoomed out so it doesn't cover whole neighbourhoods.
+  function scaleMarker() {
+    const el = meMarker && meMarker.getElement(); if (!el) return;
+    const z = map.getZoom(), k = z >= 17 ? 1 : Math.max(0.35, 1 - (17 - z) * 0.16);
+    el.querySelector('.me-scale').style.transform = `scale(${k})`;
+    const h = meImg && meImg.offsetHeight ? meImg.offsetHeight : 64;
+    el.querySelector('.say').style.bottom = Math.round(h * k + 2) + 'px';
+  }
+  map.on('zoomend', scaleMarker);
+  function pet() { say(fill(pick(PET_LINES))); hop(); cry(); }
   setInterval(() => {
     const p = partner();
     if (!started || !p || Date.now() - lastSpoke < 45000) return;
@@ -613,11 +644,9 @@
     $('stCells').textContent = explored.size.toLocaleString();
     $('stKm').textContent = (state.meters / 1000).toFixed(1);
     $('stPlaces').textContent = Object.keys(state.places).length;
-    $('stBond').textContent = '♥'.repeat(Math.min(5, Math.ceil(lv / 2))) || '♡';
   }
   function renderPartner() {
     const p = partner();
-    $('avatar').innerHTML = `<img src="${sprite.art(p.id, p.shiny)}" alt="">`;
     buildMarker();
     drawPlaces();
     renderHUD();
@@ -652,7 +681,10 @@
   $('btnCenter').onclick = () => { followMe = true; $('btnCenter').classList.add('on'); if (pos) map.setView(pos, Math.max(map.getZoom(), 16)); };
   $('btnJournal').onclick = () => { renderJournal(); openSheet('journalBg'); };
   $('btnMenu').onclick = () => openSheet('menuBg');
-  $('avatar').onclick = () => { say(fill(pick(PET_LINES))); hop(); cry(); };
+  $('mStyle').onclick = () => { setMapStyle(state.mapStyle === 'sat' ? 'street' : 'sat'); save(); };
+  const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  $('mInstall').hidden = !(isIOS && !standalone);
   $('mSwap').onclick = () => { $('menuBg').classList.remove('open'); openOnboard(); };
   $('mRefresh').onclick = () => { $('menuBg').classList.remove('open'); maybeFetchPlaces(true); };
   $('mHere').onclick = () => {
@@ -823,6 +855,10 @@
     startApp();
     say(`${nameOf(partner())} is ready. Where to?`, true);
   } else openOnboard();
+  if (isIOS && !standalone && !state.installTip) {
+    state.installTip = true; save();
+    setTimeout(() => toast('Tip: Share → Add to Home Screen for full screen'), 4000);
+  }
 
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
