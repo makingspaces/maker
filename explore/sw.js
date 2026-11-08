@@ -1,6 +1,6 @@
 // Caches the app shell so it opens instantly and survives patchy signal.
 // Map tiles and place lookups always go to the network.
-const CACHE = 'wanderbuddy-v2';
+const CACHE = 'wanderbuddy-v3';
 const SHELL = ['./', 'index.html', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png',
   'vendor/leaflet.js', 'vendor/leaflet.css'];
 

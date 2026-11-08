@@ -15,12 +15,18 @@
   const WALK_SPEED = 28;                    // m/s (game speed, not real life)
   const RUN_SPEED = 85;
   const STORE_KEY = 'wanderbuddy.v2';
-  const OVERPASS = 'https://overpass-api.de/api/interpreter';
+  const OVERPASS = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+    'https://overpass.private.coffee/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  ];
+  const WIKI = 'https://en.wikipedia.org/w/api.php';
   const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
   const POKEAPI = 'https://pokeapi.co/api/v2';
   const SPR = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
   const CRY = 'https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest';
-  const TILES = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';   // free, no key; attribution required
 
   const sprite = {
     thumb: (id) => `${SPR}/${id}.png`,
@@ -96,8 +102,6 @@
   let state = load();
   const explored = new Set(state.explored);
   const known = {};                // fetched, undiscovered places
-  const fetchedTiles = new Set();
-  let fetching = false, nextFetchOK = 0;
   let pos = state.lastPos ? state.lastPos.slice() : null;
   let lastCountedPos = null;
   let followMe = true;
@@ -163,8 +167,8 @@
   const map = L.map('map', { zoomControl: false, attributionControl: false, maxZoom: 19, minZoom: 3, keyboard: false })
     .setView(pos || [40.7128, -74.006], pos ? 17 : 12);
   L.tileLayer(TILES, {
-    subdomains: 'abcd', maxZoom: 19,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 19,
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
   L.control.attribution({ position: 'topright', prefix: false }).addAttribution('<a href="https://leafletjs.com">Leaflet</a>').addTo(map);
   map.on('dragstart', () => { followMe = false; $('btnCenter').classList.remove('on'); });
@@ -275,7 +279,7 @@
     for (const id in state.places) {
       const p = state.places[id];
       const icon = L.divIcon({ className: '', html: `<div class="place-marker${p.cat === loves ? ' loved' : ''}">${CATS[p.cat].icon}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`<b>${esc(p.name)}</b><br><i>${esc(p.quote || '')}</i>`).addTo(placeLayer);
+      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`<b>${esc(p.name)}</b>${p.desc ? `<br><small>${esc(p.desc)}</small>` : ''}<br><i>${esc(p.quote || '')}</i>${p.wiki ? `<br><a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki.replace(/ /g, '_'))}" target="_blank" rel="noopener">Read about it ↗</a>` : ''}`).addTo(placeLayer);
     }
   }
   const qIcon = L.divIcon({ className: '', html: '<div class="place-marker unknown">?</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
@@ -308,16 +312,72 @@
       books: 'a place full of books', play: 'a playground',
     }[cat];
   }
-  // Places are fetched in ~1 km tiles: entering an unfetched tile loads it plus its neighbours.
-  async function maybeFetchPlaces(force) {
-    if (!pos || fetching || Date.now() < nextFetchOK) return;
-    const ti = Math.floor(pos[0] / PLAT), tj = Math.floor(pos[1] / PLNG);
-    if (!force && fetchedTiles.has(keyOf(ti, tj))) return;
-    fetching = true;
-    const s = ((ti - 1) * PLAT).toFixed(5), n = ((ti + 2) * PLAT).toFixed(5);
-    const w = ((tj - 1) * PLNG).toFixed(5), e = ((tj + 2) * PLNG).toFixed(5);
-    const bb = `(${s},${w},${n},${e})`;
-    const q = `[out:json][timeout:25];(
+  // Places come from two free, keyless sources, loaded per ~1 km tile as you move:
+  //  - Wikipedia's nearby-articles search: reliable; landmarks, parks, museums, famous restaurants.
+  //  - OpenStreetMap via Overpass: cafés, fountains, playgrounds, murals. Overpass servers are
+  //    often overloaded, so it tries several mirrors and quietly retries later if all fail.
+  const WIKI_SKIP = /\b(county|capital|largest city|city in|town in|village in|neighbou?rhood|area in|census|street|alley|road|avenue|boulevard|highway|subway|station|metro|railway|office|agency|company|firm|corporation|court(?!house)|electoral|constituency|school district|human settlement|hospital)\b|^\d{3,4}\b|\b(american|british|english|irish|scottish|canadian|french|german|italian|australian)\s+([a-z-]+\s+)?(writer|politician|actor|actress|singer|painter|photographer|businessman|businesswoman|architect|lawyer|judge|journalist|poet|artist|engineer|footballer|player|author|composer|musician|activist|minister|merchant|physician|educator|historian|sculptor)/i;
+  const WIKI_CATS = [
+    ['water',   /\b(fountain|river|pond|lake|harbou?r|creek|canal|bay|wharf|pier|beach|reservoir|waterfront|aquarium|waterfall|marina|lagoon)\b/i],
+    ['food',    /\b(restaurant|tavern|caf[eé]|coffee\w*|bakery|pub|bar|brewery|brewpub|market|diner|eatery|food hall|bistro|pizzeria|ice cream|winery|distillery)\b/i],
+    ['books',   /\b(museum|library|athenaeum|archives?|bookstore|bookshop|university|college|planetarium|science cent(er|re))\b/i],
+    ['play',    /\b(stadium|arena|ballpark|playground|sports|rink|skate ?park|velodrome|racetrack|golf|zoo|amusement|theme park)\b/i],
+    ['green',   /\b(park|gardens?|common|arboretum|forest|woods|nature|botanical|greenway|meadow|reserve|trail)\b/i],
+    ['art',     /\b(theat(er|re)|opera|concert|venue|gallery|sculptures?|statues?|murals?|mosaic|artwork|art|arts|skyscraper|tower|bridge|observation|viewpoint|lookout|plaza|square)\b/i],
+    ['history', /\b(historic\w*|memorial|monument|church|chapel|cathedral|basilica|synagogue|mosque|temple|meeting ?house|courthouse|city hall|town hall|state ?house|capitol|lighthouse|fort|fortress|castle|palace|jail|gaol|prison|cemetery|graveyard|burying|burial|landmark|mansion|house|building|hall|mill|battlefield|ruins?|shrine|abbey|monastery|tomb|obelisk|arch)\b/i],
+  ];
+  function categorizeWiki(title, desc) {
+    if (WIKI_SKIP.test(desc || title)) return null;
+    const text = title + ' ' + (desc || '');
+    for (const [cat, re] of WIKI_CATS) if (re.test(text)) return cat;
+    return null;
+  }
+  const normName = (n) => n.toLowerCase().replace(/\(.*?\)|[^a-z0-9 ]/g, '').replace(/\b(the|of)\b/g, '').replace(/\s+/g, ' ').trim();
+  function isDuplicate(pl) {
+    const n = normName(pl.name); if (!n) return false;
+    const near = (o) => Math.abs(o.lat - pl.lat) < 0.001 && Math.abs(o.lng - pl.lng) < 0.0013;
+    const same = (o) => { const m = normName(o.name); return m && (m.includes(n) || n.includes(m)); };
+    for (const id in known) if (near(known[id]) && same(known[id])) return true;
+    for (const id in state.places) if (near(state.places[id]) && same(state.places[id])) return true;
+    return false;
+  }
+  function addKnown(id, pl) {
+    if (state.places[id] || known[id] || isDuplicate(pl)) return false;
+    known[id] = pl; return true;
+  }
+  async function fetchWithTimeout(url, opts, ms) {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), ms);
+    try { return await fetch(url, Object.assign({ signal: ctl.signal }, opts)); } finally { clearTimeout(t); }
+  }
+
+  const wikiTiles = new Set(), osmTiles = new Set(), wikiFailedAt = {}, osmFailedAt = {};
+  let wikiBusy = false, osmBusy = false;
+
+  async function fetchWiki(k, c) {
+    wikiBusy = true;
+    try {
+      const url = `${WIKI}?action=query&generator=geosearch&ggscoord=${c[0].toFixed(5)}|${c[1].toFixed(5)}&ggsradius=850&ggslimit=150`
+        + '&prop=coordinates|description&colimit=max&format=json&formatversion=2&origin=*';
+      const res = await fetchWithTimeout(url, {}, 12000);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+      let added = 0;
+      for (const pg of (d.query && d.query.pages) || []) {
+        const co = pg.coordinates && pg.coordinates[0]; if (!co) continue;
+        const cat = categorizeWiki(pg.title, pg.description || ''); if (!cat) continue;
+        const name = pg.title.replace(/ \([^)]*\)$/, '').replace(/, [A-Z][a-z]+( [A-Z][a-z]+)?$/, '');
+        if (addKnown('w' + pg.pageid, { name, cat, lat: co.lat, lng: co.lon, wiki: pg.title, desc: pg.description || '' })) added++;
+      }
+      wikiTiles.add(k);
+      return added;
+    } catch (err) { wikiFailedAt[k] = Date.now(); return -1; } finally { wikiBusy = false; }
+  }
+
+  async function fetchOSM(k, ti, tj) {
+    osmBusy = true;
+    const bb = `(${(ti * PLAT).toFixed(5)},${(tj * PLNG).toFixed(5)},${((ti + 1) * PLAT).toFixed(5)},${((tj + 1) * PLNG).toFixed(5)})`;
+    const q = `[out:json][timeout:15];(
       nwr${bb}["amenity"~"^(restaurant|cafe|bakery|ice_cream|pub|marketplace|library|arts_centre|fountain)$"]["name"];
       node${bb}["amenity"="fountain"];
       nwr${bb}["shop"~"^(bakery|books)$"]["name"];
@@ -325,31 +385,45 @@
       nwr${bb}["historic"]["name"];
       nwr${bb}["tourism"~"^(museum|viewpoint|attraction|artwork|gallery)$"];
       nwr${bb}["natural"="water"]["name"];
-    );out center 1500;`;
+    );out center 600;`;
     try {
-      const res = await fetch(OVERPASS, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      let added = 0;
-      for (const el of data.elements || []) {
-        const t = el.tags || {};
-        const cat = categorize(t); if (!cat) continue;
-        const id = el.type[0] + el.id;
-        if (state.places[id] || known[id]) continue;
-        const la = el.lat ?? el.center?.lat, ln = el.lon ?? el.center?.lon;
-        if (la == null) continue;
-        known[id] = { name: t.name || fallbackName(cat, t), cat, lat: la, lng: ln };
-        added++;
+      for (const server of OVERPASS) {
+        try {
+          const res = await fetchWithTimeout(server, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 15000);
+          if (!res.ok) continue;
+          const data = await res.json();
+          let added = 0;
+          for (const el of data.elements || []) {
+            const t = el.tags || {};
+            const cat = categorize(t); if (!cat) continue;
+            const la = el.lat ?? el.center?.lat, ln = el.lon ?? el.center?.lon;
+            if (la == null) continue;
+            if (addKnown(el.type[0] + el.id, { name: t.name || fallbackName(cat, t), cat, lat: la, lng: ln })) added++;
+          }
+          osmTiles.add(k);
+          return added;
+        } catch (e) { /* try the next mirror */ }
       }
-      for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) fetchedTiles.add(keyOf(ti + di, tj + dj));
-      nextFetchOK = Date.now() + 3000;
+      osmFailedAt[k] = Date.now();
+      return -1;
+    } finally { osmBusy = false; }
+  }
+
+  function maybeFetchPlaces(force) {
+    if (!pos) return;
+    const ti = Math.floor(pos[0] / PLAT), tj = Math.floor(pos[1] / PLNG), k = keyOf(ti, tj);
+    if (force) { wikiTiles.delete(k); osmTiles.delete(k); delete wikiFailedAt[k]; delete osmFailedAt[k]; }
+    const now = Date.now(), jobs = [];
+    if (!wikiBusy && !wikiTiles.has(k) && !(now - (wikiFailedAt[k] || 0) < 15000)) jobs.push(fetchWiki(k, [(ti + 0.5) * PLAT, (tj + 0.5) * PLNG]));
+    if (!osmBusy && !osmTiles.has(k) && !(now - (osmFailedAt[k] || 0) < 60000)) jobs.push(fetchOSM(k, ti, tj));
+    if (!jobs.length) { if (force) toast('Still looking… try again in a moment'); return; }
+    Promise.all(jobs).then((r) => {
       drawUnknown();
-      if (force) toast(added ? `Found ${added} new spots around here` : 'No new spots around here');
-    } catch (err) {
-      nextFetchOK = Date.now() + 20000;
-      if (force) toast('Could not reach OpenStreetMap. Try again in a bit.');
-    }
-    fetching = false;
+      if (!force) return;
+      const added = r.filter((n) => n > 0).reduce((a, b) => a + b, 0);
+      if (r.every((n) => n < 0)) toast('Couldn\'t load places right now. Try again in a bit.');
+      else toast(added ? `Found ${added} new spots around here` : 'No new spots around here');
+    });
   }
   function checkDiscoveries() {
     const p = partner(); if (!pos || !p) return;
@@ -580,7 +654,7 @@
   $('btnMenu').onclick = () => openSheet('menuBg');
   $('avatar').onclick = () => { say(fill(pick(PET_LINES))); hop(); cry(); };
   $('mSwap').onclick = () => { $('menuBg').classList.remove('open'); openOnboard(); };
-  $('mRefresh').onclick = () => { $('menuBg').classList.remove('open'); nextFetchOK = 0; maybeFetchPlaces(true); };
+  $('mRefresh').onclick = () => { $('menuBg').classList.remove('open'); maybeFetchPlaces(true); };
   $('mHere').onclick = () => {
     locateMe((lat, lng) => { $('menuBg').classList.remove('open'); jumpTo(lat, lng, 'Home turf'); });
   };
