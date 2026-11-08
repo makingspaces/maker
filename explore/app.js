@@ -54,6 +54,7 @@
     art:     { label: 'Art & views',     icon: '🎨' },
     books:   { label: 'Books & museums', icon: '📚' },
     play:    { label: 'Play & sport',    icon: '🛝' },
+    mine:    { label: 'My spots',        icon: '⭐' },
   };
   // Primary type -> favourite kind of place
   const TYPE_LOVES = {
@@ -77,27 +78,50 @@
     [909, 'Fuecoco'], [912, 'Quaxly'],
   ];
 
-  // What your partner says. {p} = place name, {n} = Pokémon name.
+  // What your partner says. {p} = place name, {n} = Pokémon name. Lines are drawn without
+  // repeats until most of a pool has been used.
   const LINES = {
-    food:    { love: ['Do you smell that?! {p}! Let\'s go in!', '{p}! I\'m adding this to my snack map.', 'Stop! {p}. We have to.'],
-               idle: ['Is it snack time yet?', 'Every street smells different!'] },
-    water:   { love: ['Splash! {p}! Can I jump in?', '{p}! The water here is singing.', 'I found {p}! Best day.'],
-               idle: ['Puddle radar: active.', 'I can smell the water from here.'] },
-    green:   { love: ['{p}! Look at all the green!', 'Can we sit in {p} for a minute?', 'The trees in {p} are saying hi.'],
-               idle: ['Slow down, I\'m looking at a leaf.', 'The city is greener than you think.'] },
-    history: { love: ['{p}. This place has stories. Lots of them.', 'Read the plaque at {p}. For me.', '{p}! Old things are the best things.'],
-               idle: ['This street used to be something else.', 'I like old corners best.'] },
-    art:     { love: ['Whoa, {p}! Hold still, I\'m inspired.', '{p}! Look at it! Now look UP.', 'I want to live inside {p}.'],
-               idle: ['Let\'s find something tall.', 'Somebody painted that wall. Who?'] },
-    books:   { love: ['{p}!! So many things to learn!', 'Can we go into {p}? Five minutes. Ten. An hour.', '{p}. I feel smarter already.'],
-               idle: ['I wonder who lives up there.', 'Every block is a new page.'] },
-    play:    { love: ['{p}! Race you!', 'Let\'s train at {p}!', '{p}! I have SO much energy right now.'],
-               idle: ['I could go all day!', 'Faster! Let\'s run!'] },
+    food:    { love: ['Do you smell that?! {p}! Let\'s go in!', '{p}! I\'m adding this to my snack map.', 'Stop! {p}. We have to.',
+                      '{p}. My stomach just made a noise.', 'Is {p} open? Please say it\'s open.', 'I\'d walk across town for {p}. Oh wait, we did.',
+                      '{p}! Order me one of everything.'],
+               like: ['{p}. Smells good from here.', 'Ooh, {p}. Let\'s remember that one for later.', '{p}! Is that where the smell is coming from?', 'Food spot: {p}. Noted.'],
+               idle: ['Is it snack time yet?', 'Every street smells different!', 'I\'m not hungry. I\'m just… looking.'] },
+    water:   { love: ['Splash! {p}! Can I jump in?', '{p}! The water here is singing.', 'I found {p}! Best day.',
+                      '{p}. I could stare at this forever.', 'Water! {p}! Hold my bag.', 'Do you hear that? {p}!'],
+               like: ['{p}. Water! Nice.', 'Is that {p}? I can hear it.', '{p}. Good spot to cool off.'],
+               idle: ['Puddle radar: active.', 'I can smell the water from here.', 'Is it going to rain? I hope so.'] },
+    green:   { love: ['{p}! Look at all the green!', 'Can we sit in {p} for a minute?', 'The trees in {p} are saying hi.',
+                      '{p}. Finally, real ground.', 'I want to roll around in {p}.', '{p}! I can breathe again.'],
+               like: ['{p}. Lots of shade here.', 'Ooh, {p}. Smells like grass.', '{p}! Somebody\'s taking care of these plants.'],
+               idle: ['Slow down, I\'m looking at a leaf.', 'The city is greener than you think.', 'That tree is older than both of us.'] },
+    history: { love: ['{p}. This place has stories. Lots of them.', 'Read the plaque at {p}. For me.', '{p}! Old things are the best things.',
+                      'People have been coming to {p} for a long time.', '{p}. I can feel it. History.', 'Shh. {p} deserves some respect.'],
+               like: ['{p}. This looks old.', 'Wonder how long {p} has been here.', '{p}. Somebody important was here once, probably.'],
+               idle: ['This street used to be something else.', 'I like old corners best.', 'Look at the brick on that one.'] },
+    art:     { love: ['Whoa, {p}! Hold still, I\'m inspired.', '{p}! Look at it! Now look UP.', 'I want to live inside {p}.',
+                      '{p}. Somebody made this on purpose and it shows.', 'Okay, {p} is my new favorite thing.', 'Can we take a picture at {p}?'],
+               like: ['{p}! That\'s pretty cool.', 'Look, {p}.', '{p}. Somebody made that on purpose.'],
+               idle: ['Let\'s find something tall.', 'Somebody painted that wall. Who?', 'Everything looks better from up high.'] },
+    books:   { love: ['{p}!! So many things to learn!', 'Can we go into {p}? Five minutes. Ten. An hour.', '{p}. I feel smarter already.',
+                      'Imagine everything inside {p}.', '{p}! Quiet voices. QUIET VOICES.', 'I bet {p} has a book about me.'],
+               like: ['{p}. Lots of quiet in there.', 'Hm, {p}. Bet it\'s full of stuff to read.', '{p}. Smart-looking place.'],
+               idle: ['I wonder who lives up there.', 'Every block is a new page.', 'Did you know I can read? Sort of.'] },
+    play:    { love: ['{p}! Race you!', 'Let\'s train at {p}!', '{p}! I have SO much energy right now.',
+                      'Last one to {p} is a Slowpoke!', '{p}. This is where champions are made.', 'Can I go on everything at {p}?'],
+               like: ['{p}! Looks fun.', 'Ooh, {p}. Somebody\'s been playing here.', '{p}. I could do a lap.'],
+               idle: ['I could go all day!', 'Faster! Let\'s run!', 'Bet I can beat you to the corner.'] },
   };
-  const LIKE_LINES = ['Ooh, {p}.', '{p}. Adding it to the journal.', 'Nice find: {p}.', '{p}? Huh. Neat.'];
-  const IDLE_LINES = ['Where to next?', 'Let\'s go somewhere we\'ve never been.', 'I like exploring with you.'];
-  const NEW_BLOCK_LINES = ['New street!', 'We\'ve never been here before!', 'The fog\'s lifting!', 'Uncharted territory!'];
-  const PET_LINES = ['♡', '*happy {n} noises*', 'Hehe!', 'Again!', 'Let\'s keep going!'];
+  const TYPE_TICS = {
+    fire: '*tail flares*', water: '*splish*', grass: '*leaves rustle*', electric: '*bzzt*', ice: '*shivers happily*',
+    psychic: '*eyes glow*', ghost: '*flickers*', dragon: '*proud roar*', fairy: '*sparkles*', fighting: '*punches the air*',
+    rock: '*rumbles*', ground: '*digs a little*', steel: '*clank*', bug: '*antennae twitch*', poison: '*bubbles*',
+    flying: '*flaps*', dark: '*grins*', normal: '*bounces*',
+  };
+  const IDLE_LINES = ['Where to next?', 'Let\'s go somewhere we\'ve never been.', 'I like exploring with you.', 'Which way? You pick.'];
+  const NEW_BLOCK_LINES = ['New street!', 'We\'ve never been here before!', 'The fog\'s lifting!', 'Uncharted territory!', 'Ooh, haven\'t seen this block.'];
+  const MINE_SAVE_LINES = ['{p}. I\'ll remember this one.', 'Got it. {p} is ours now.', '{p}! I can tell this place matters to you.', 'Marking {p}. Good choice.'];
+  const MINE_RETURN_LINES = ['Hey, it\'s {p}! Your spot.', '{p} again. I like coming back here.', 'We\'re at {p}! Remember?'];
+  const PET_LINES = ['♡', '*happy {n} noises*', 'Hehe!', 'Again!', 'Let\'s keep going!', 'That tickles!', '*nuzzles*', 'Best partner ever.'];
 
   // ---------------------------------------------------------------------------
   // State
@@ -141,6 +165,13 @@
   const nameOf = (p) => p.nick || p.species;
   const lovesOf = (p) => TYPE_LOVES[(p.types && p.types[0]) || 'normal'] || 'food';
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const recentLines = [];
+  function pickFresh(arr) {   // avoid repeating anything said recently
+    const fresh = arr.filter((l) => !recentLines.includes(l));
+    const line = pick(fresh.length ? fresh : arr);
+    recentLines.push(line); if (recentLines.length > 30) recentLines.shift();
+    return line;
+  }
   const fill = (s, place) => s.replace('{p}', place || '').replace('{n}', partner() ? partner().species : '');
   const pretty = (slug) => slug.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ')
     .replace(/^Mr /, 'Mr. ').replace(/ Jr$/, ' Jr.').replace(/^Nidoran F$/, 'Nidoran♀').replace(/^Nidoran M$/, 'Nidoran♂');
@@ -247,15 +278,42 @@
   // ---------------------------------------------------------------------------
   // Your Pokémon on the map
   // ---------------------------------------------------------------------------
-  let meMarker = null, meImg = null;
+  let meMarker = null, meImg = null, meBody = null, meShadow = null, floats = false;
+  // Pokémon that hover instead of walk: Flying and Ghost types, plus well-known levitators.
+  const FLOATERS = new Set([81, 82, 92, 93, 109, 110, 151, 201, 251, 337, 338, 343, 344, 358, 380, 381, 385, 436, 437, 462, 479, 480, 481, 482, 487, 488, 489, 490, 491, 492, 494, 769, 770, 854, 855]);
+  function isFloater(p) { return FLOATERS.has(p.id) || (p.types || []).some((t) => t === 'flying' || t === 'ghost'); }
+  // Showdown sprites are idle animations, so add a gait: walkers waddle, floaters bob in the air.
+  let gait = 0, gaitAmp = 0;
+  function animateGait(t, dt, moving, running) {
+    if (!meBody) return;
+    const target = moving ? 1 : 0;
+    gaitAmp += (target - gaitAmp) * Math.min(1, dt * 8);
+    if (floats) {
+      const bob = Math.sin(t / 1000 * 2.2);
+      const lift = 14 + bob * 5;
+      const tilt = moving ? (facing.flip ? 6 : -6) * gaitAmp : 0;
+      meBody.style.transform = `translateY(${-lift}px) rotate(${tilt}deg)`;
+      meShadow.style.transform = `scale(${0.75 - bob * 0.08})`; meShadow.style.opacity = 0.6;
+    } else {
+      gait += dt * (running ? 7 : 4.5) * gaitAmp;
+      const ph = Math.sin(gait * Math.PI);
+      const lift = Math.abs(ph) * (running ? 6 : 3.5) * gaitAmp;
+      const sway = ph * (running ? 4 : 7) * gaitAmp;
+      meBody.style.transform = `translateY(${-lift}px) rotate(${sway}deg)`;
+      meShadow.style.transform = `scale(${1 - lift * 0.03})`; meShadow.style.opacity = 1;
+    }
+  }
   let facing = { back: false, flip: false };
   function buildMarker() {
     if (meMarker) meMarker.remove();
     const p = partner();
-    const icon = L.divIcon({ className: 'me-marker', html: '<div class="me-inner"><div class="me-scale"><div class="me-shadow"></div><img alt=""></div><div class="say"></div></div>', iconSize: [96, 96], iconAnchor: [48, 92] });
+    const icon = L.divIcon({ className: 'me-marker', html: '<div class="me-inner"><div class="me-scale"><div class="me-shadow"></div><div class="me-body"><img alt=""></div></div><div class="say"></div></div>', iconSize: [96, 96], iconAnchor: [48, 92] });
     meMarker = L.marker(pos, { icon, zIndexOffset: 1000, interactive: true, keyboard: false, bubblingMouseEvents: false }).addTo(map);
     meMarker.on('click', pet);
     meImg = meMarker.getElement().querySelector('img');
+    meBody = meMarker.getElement().querySelector('.me-body');
+    meShadow = meMarker.getElement().querySelector('.me-shadow');
+    floats = isFloater(p);
     meImg.onerror = () => {
       // Some Pokémon lack an animated sprite: fall back to the static one.
       const fb = sprite.walkFallback(p.id, p.shiny, facing.back);
@@ -296,7 +354,12 @@
     for (const id in state.places) {
       const p = state.places[id];
       const icon = L.divIcon({ className: '', html: `<div class="place-marker${p.cat === loves ? ' loved' : ''}">${CATS[p.cat].icon}</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
-      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(`<b>${esc(p.name)}</b>${p.desc ? `<br><small>${esc(p.desc)}</small>` : ''}<br><i>${esc(p.quote || '')}</i>${p.wiki ? `<br><a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki.replace(/ /g, '_'))}" target="_blank" rel="noopener">Read about it ↗</a>` : ''}`).addTo(placeLayer);
+      const html = p.cat === 'mine'
+        ? `<b>⭐ ${esc(p.name)}</b>${p.note ? `<br>${esc(p.note)}` : ''}<br><small>Marked ${new Date(p.at).toLocaleDateString()}</small><br><a href="#" class="rm-spot" data-id="${id}">Remove</a>`
+        : `<b>${esc(p.name)}</b>${p.desc ? `<br><small>${esc(p.desc)}</small>` : ''}<br><i>${esc(p.quote || '')}</i>`
+          + (p.fact ? `<br><small>${esc(p.fact.length > 300 ? p.fact.slice(0, 297) + '…' : p.fact)}</small>` : '')
+          + (p.wiki ? `<br><a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.wiki.replace(/ /g, '_'))}" target="_blank" rel="noopener">Read about it ↗</a>` : '');
+      L.marker([p.lat, p.lng], { icon, keyboard: false }).bindPopup(html, { maxWidth: 260 }).addTo(placeLayer);
     }
   }
   const qIcon = L.divIcon({ className: '', html: '<div class="place-marker unknown">?</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
@@ -384,17 +447,36 @@
         const co = pg.coordinates && pg.coordinates[0]; if (!co) continue;
         const cat = categorizeWiki(pg.title, pg.description || ''); if (!cat) continue;
         const name = pg.title.replace(/ \([^)]*\)$/, '').replace(/, [A-Z][a-z]+( [A-Z][a-z]+)?$/, '');
-        if (addKnown('w' + pg.pageid, { name, cat, lat: co.lat, lng: co.lon, wiki: pg.title, desc: pg.description || '' })) added++;
+        if (addKnown('w' + pg.pageid, { name, cat, lat: co.lat, lng: co.lon, wiki: pg.title, pageid: pg.pageid, desc: pg.description || '' })) added++;
       }
       wikiTiles.add(k);
       return added;
     } catch (err) { wikiFailedAt[k] = Date.now(); return -1; } finally { wikiBusy = false; }
   }
 
+  function addOSMElements(list) {
+    let added = 0;
+    for (const el of list) {
+      const t = el.tags || {};
+      const cat = categorize(t); if (!cat) continue;
+      const la = el.lat ?? el.center?.lat, ln = el.lon ?? el.center?.lon;
+      if (la == null) continue;
+      if (addKnown(el.type[0] + el.id, { name: t.name || fallbackName(cat, t), cat, lat: la, lng: ln })) added++;
+    }
+    return added;
+  }
+  async function overpass(server, q) {
+    const res = await fetchWithTimeout(server, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 18000);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.elements) throw new Error('bad response');
+    return { server, elements: data.elements };
+  }
   async function fetchOSM(k, ti, tj) {
     osmBusy = true;
-    const bb = `(${(ti * PLAT).toFixed(5)},${(tj * PLNG).toFixed(5)},${((ti + 1) * PLAT).toFixed(5)},${((tj + 1) * PLNG).toFixed(5)})`;
-    const q = `[out:json][timeout:15];(
+    const S = ti * PLAT, W = tj * PLNG, N = (ti + 1) * PLAT, E = (tj + 1) * PLNG;
+    const bb = `(${S.toFixed(5)},${W.toFixed(5)},${N.toFixed(5)},${E.toFixed(5)})`;
+    const q = `[out:json][timeout:20];(
       nwr${bb}["amenity"~"^(restaurant|cafe|bakery|ice_cream|pub|marketplace|library|arts_centre|fountain)$"]["name"];
       node${bb}["amenity"="fountain"];
       nwr${bb}["shop"~"^(bakery|books)$"]["name"];
@@ -404,23 +486,35 @@
       nwr${bb}["natural"="water"]["name"];
     );out center 600;`;
     try {
-      for (const server of OVERPASS) {
-        try {
-          const res = await fetchWithTimeout(server, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }, 15000);
-          if (!res.ok) continue;
-          const data = await res.json();
-          let added = 0;
-          for (const el of data.elements || []) {
-            const t = el.tags || {};
-            const cat = categorize(t); if (!cat) continue;
-            const la = el.lat ?? el.center?.lat, ln = el.lon ?? el.center?.lon;
-            if (la == null) continue;
-            if (addKnown(el.type[0] + el.id, { name: t.name || fallbackName(cat, t), cat, lat: la, lng: ln })) added++;
-          }
-          osmTiles.add(k);
-          return added;
-        } catch (e) { /* try the next mirror */ }
+      // Public Overpass servers come and go. Try the one that worked last, then race the others.
+      let best = null; try { best = localStorage.getItem('wanderbuddy.osm'); } catch (e) { /* ignore */ }
+      let result = null;
+      if (best && OVERPASS.includes(best)) { try { result = await overpass(best, q); } catch (e) { /* fall through */ } }
+      if (!result) {
+        try { result = await Promise.any(OVERPASS.filter((u) => u !== best).map((u) => overpass(u, q))); } catch (e) { /* all failed */ }
       }
+      if (result) {
+        try { localStorage.setItem('wanderbuddy.osm', result.server); } catch (e) { /* ignore */ }
+        osmTiles.add(k);
+        return addOSMElements(result.elements);
+      }
+      // Last resort: OpenStreetMap's search service, one kind of place at a time (it allows ~1 request/second).
+      let added = 0, ok = false;
+      for (const kind of ['cafe', 'restaurant', 'park', 'playground', 'library', 'fountain', 'museum', 'bakery']) {
+        try {
+          const res = await fetchWithTimeout(`${NOMINATIM}?amenity=${kind}&viewbox=${W},${N},${E},${S}&bounded=1&limit=40&format=jsonv2`, {}, 10000);
+          if (res.ok) {
+            ok = true;
+            for (const r of await res.json()) {
+              const cat = categorize({ [r.category]: r.type }); if (!cat) continue;
+              if (addKnown('n' + r.osm_type[0] + r.osm_id, { name: r.name || fallbackName(cat, { [r.category]: r.type }), cat, lat: +r.lat, lng: +r.lon })) added++;
+            }
+          }
+        } catch (e) { /* skip this kind */ }
+        drawUnknown();
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+      if (ok) { osmTiles.add(k); return added; }
       osmFailedAt[k] = Date.now();
       return -1;
     } finally { osmBusy = false; }
@@ -451,7 +545,9 @@
       if (haversine(pos, [k.lat, k.lng]) > DISCOVER_RADIUS) continue;
       delete known[id];
       const isLove = k.cat === loves;
-      const quote = fill(pick(isLove ? LINES[k.cat].love : LIKE_LINES), k.name);
+      let quote = fill(pickFresh(isLove ? LINES[k.cat].love : LINES[k.cat].like), k.name);
+      const tic = TYPE_TICS[(p.types && p.types[0]) || 'normal'];
+      if (isLove && tic && Math.random() < 0.4) quote = tic + ' ' + quote;
       state.places[id] = Object.assign(k, { at: Date.now(), by: nameOf(p), quote });
       say(quote, true);
       toast(`${CATS[k.cat].icon} Discovered ${k.name}`);
@@ -459,8 +555,39 @@
       addXP(isLove ? 150 : 50);
       if (navigator.vibrate) navigator.vibrate(isLove ? [60, 40, 60] : 30);
       drawPlaces(); drawUnknown(); save();
+      lastFound = id;
+      if (k.pageid) loadFact(id);
       return;
     }
+    // Back at one of your own spots?
+    for (const id in state.places) {
+      const m = state.places[id];
+      if (m.cat !== 'mine' || Math.abs(m.lat - pos[0]) > 0.001) continue;
+      if (haversine(pos, [m.lat, m.lng]) > DISCOVER_RADIUS) continue;
+      if (Date.now() - (mineGreeted[id] || 0) < 10 * 60000) continue;
+      mineGreeted[id] = Date.now();
+      say(fill(pickFresh(MINE_RETURN_LINES), m.name), true); hop();
+      return;
+    }
+  }
+  const mineGreeted = {};
+  let lastFound = null;
+  // A real fact from the Wikipedia article, said a moment after the reaction.
+  async function loadFact(id) {
+    const pl = state.places[id];
+    try {
+      const res = await fetchWithTimeout(`${WIKI}?action=query&prop=extracts&exintro=1&explaintext=1&exsentences=3&pageids=${pl.pageid}&format=json&formatversion=2&origin=*`, {}, 10000);
+      const d = await res.json();
+      const text = ((d.query && d.query.pages && d.query.pages[0] && d.query.pages[0].extract) || '').replace(/\s+/g, ' ').trim();
+      if (!text) return;
+      const sentences = text.match(/[^.!?]+[.!?]+(\s|$)/g) || [text];
+      // The first sentence is usually "X is a building in Y"; the next one is often more interesting.
+      let fact = (sentences.length > 1 ? sentences[1] : sentences[0]).trim();
+      if (fact.length > 190) fact = fact.slice(0, 187).replace(/\s+\S*$/, '') + '…';
+      pl.fact = text; save(); drawPlaces();
+      // Only say it if nothing newer was found meanwhile; it's kept in the journal either way.
+      setTimeout(() => { if (lastFound === id) say('Did you know? ' + fact, true); }, 3800);
+    } catch (e) { /* no fact this time */ }
   }
 
   // ---------------------------------------------------------------------------
@@ -521,6 +648,34 @@
   });
   function clearTarget() { target = null; if (targetMarker) targetMarker.remove(); }
 
+  // Mark your own spots: the 📌 button marks where your Pokémon stands; long-press the map to mark anywhere.
+  let markAt = null;
+  function openMark(latlng, label) {
+    markAt = latlng;
+    $('markWhere').textContent = label;
+    $('markName').value = ''; $('markNote').value = '';
+    openSheet('markBg');
+    setTimeout(() => $('markName').focus(), 50);
+  }
+  $('btnMark').onclick = () => { if (pos) openMark(pos.slice(), `Where ${nameOf(partner())} is standing.`); };
+  map.on('contextmenu', (e) => { if (started) { clearTarget(); openMark([e.latlng.lat, e.latlng.lng], 'Where you long-pressed the map.'); } });
+  $('markSave').onclick = () => {
+    const name = $('markName').value.trim() || 'My spot';
+    const id = 'm' + Date.now();
+    state.places[id] = { name, note: $('markNote').value.trim(), cat: 'mine', lat: markAt[0], lng: markAt[1], at: Date.now(), by: nameOf(partner()) };
+    mineGreeted[id] = Date.now();
+    $('markBg').classList.remove('open');
+    drawPlaces(); renderHUD(); save();
+    say(fill(pickFresh(MINE_SAVE_LINES), name), true); hop();
+  };
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.rm-spot'); if (!a) return;
+    e.preventDefault();
+    if (!confirm('Remove this spot?')) return;
+    delete state.places[a.dataset.id];
+    map.closePopup(); drawPlaces(); renderHUD(); save();
+  });
+
   let lastFrame = 0, lastLogic = 0, moving = false;
   function frame(t) {
     requestAnimationFrame(frame);
@@ -554,6 +709,7 @@
       moving = true;
     } else if (moving) { moving = false; setFacing(false, facing.flip); }
 
+    animateGait(t, dt, moving, speed === RUN_SPEED);
     if (t - lastLogic > 100 && moving) { lastLogic = t; onMoved(); }
   }
   function step(north, east) {
@@ -582,7 +738,7 @@
     if (fresh.length) {
       refreshFog(fresh);
       addXP(fresh.length * 2);
-      if (Date.now() - lastNewBlockLine > 40000 && fresh.length >= 3 && Date.now() - lastSpoke > 8000) { say(pick(NEW_BLOCK_LINES)); lastNewBlockLine = Date.now(); }
+      if (Date.now() - lastNewBlockLine > 40000 && fresh.length >= 3 && Date.now() - lastSpoke > 8000) { say(pickFresh(NEW_BLOCK_LINES)); lastNewBlockLine = Date.now(); }
     }
     checkDiscoveries();
     maybeFetchPlaces(false);
@@ -622,11 +778,11 @@
     el.querySelector('.say').style.bottom = Math.round(h * k + 2) + 'px';
   }
   map.on('zoomend', scaleMarker);
-  function pet() { say(fill(pick(PET_LINES))); hop(); cry(); }
+  function pet() { say(fill(pickFresh(PET_LINES))); hop(); cry(); }
   setInterval(() => {
     const p = partner();
     if (!started || !p || Date.now() - lastSpoke < 45000) return;
-    say(fill(pick(LINES[lovesOf(p)].idle.concat(IDLE_LINES)))); lastSpoke = Date.now();
+    say(fill(pickFresh(LINES[lovesOf(p)].idle.concat(IDLE_LINES)))); lastSpoke = Date.now();
   }, 15000);
 
   let toastTimer;
@@ -660,7 +816,7 @@
     $('journalList').innerHTML = list.length ? list.map(([id, p]) => `
       <div class="entry" data-id="${id}"><div class="ico">${CATS[p.cat].icon}</div><div>
         <div class="t">${esc(p.name)}</div>
-        <div class="q">“${esc(p.quote)}” ${p.by ? '— ' + esc(p.by) : ''}</div>
+        <div class="q">${p.cat === 'mine' ? esc(p.note || 'Your spot') : `“${esc(p.quote)}” ${p.by ? '— ' + esc(p.by) : ''}`}</div>
         <div class="d">${new Date(p.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</div>
       </div></div>`).join('')
       : '<p class="empty">Nothing yet. Head toward a <b>?</b> on the map to discover it.</p>';

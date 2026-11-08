@@ -99,6 +99,8 @@
   .me-marker.hop .me-inner { animation: hop .5s ease 3; }
   .me-marker img { max-width: 96px; max-height: 96px; image-rendering: pixelated; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); transform-origin: 50% 100%; }
   .me-marker img.flip { transform: scaleX(-1); }
+  .me-body { transform-origin: 50% 100%; will-change: transform; }
+  .me-shadow { transition: opacity .3s; }
   .me-scale { position: relative; display: flex; align-items: flex-end; justify-content: center; transform-origin: 50% 100%; transition: transform .2s; }
   .me-shadow { position: absolute; left: 50%; bottom: -4px; width: 40px; height: 10px; margin-left: -20px; border-radius: 50%; background: rgba(0,0,0,.25); }
   .place-marker {
@@ -189,6 +191,7 @@
   <div class="controls" id="bottom" hidden>
     <div class="stick" id="stick" aria-label="Joystick"><div class="knob" id="knob"></div></div>
     <div class="btns">
+      <button class="fab" id="btnMark" aria-label="Mark this spot">📌</button>
       <button class="fab run" id="btnRun" aria-label="Run">👟</button>
       <button class="fab" id="btnCenter" aria-label="Center">◎</button>
       <button class="fab" id="btnJournal" aria-label="Journal">📔</button>
@@ -234,11 +237,26 @@
     </div>
   </div>
 
+  <!-- Mark a spot -->
+  <div class="sheet-bg" id="markBg">
+    <div class="sheet">
+      <button class="sheet-close" data-close>✕</button>
+      <h2>⭐ Mark this spot</h2>
+      <p class="sub" id="markWhere"></p>
+      <label class="lbl" for="markName">Name</label>
+      <input class="field" id="markName" maxlength="40" placeholder="e.g. Where we got engaged" autocomplete="off">
+      <label class="lbl" for="markNote">Why it matters <span style="font-weight:400;color:#8a8fa8">(optional)</span></label>
+      <textarea class="field" id="markNote" rows="3" maxlength="300" placeholder="A note for future you"></textarea>
+      <button class="go" id="markSave">Save spot</button>
+    </div>
+  </div>
+
   <!-- Menu -->
   <div class="sheet-bg" id="menuBg">
     <div class="sheet">
       <button class="sheet-close" data-close>✕</button>
       <h2>Menu</h2>
+      <p class="sub">Tip: long-press anywhere on the map to mark a spot.</p>
       <p class="sub keys-hint">Keyboard: arrow keys or WASD to move, hold Shift to run.</p>
       <label class="lbl" for="tpSearch">Travel somewhere</label>
       <input class="field" id="tpSearch" placeholder="City, neighborhood, address…" autocomplete="off">
